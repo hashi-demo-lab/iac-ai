@@ -1,70 +1,136 @@
-import { AbsoluteFill, Sequence, useVideoConfig, staticFile } from "remotion";
-import { Video } from "@remotion/media";
+import { AbsoluteFill, Sequence, interpolate, useVideoConfig, staticFile } from "remotion";
+import { Audio, Video } from "@remotion/media";
+import { TransitionSeries, linearTiming } from "@remotion/transitions";
+import { fade } from "@remotion/transitions/fade";
 import { TitleCard } from "./TitleCard";
+import { ValueCards } from "./ValueCards";
+import { ConsumerWorkflows, CONSUMER_DURATION_SECONDS } from "./ConsumerWorkflows";
 import { ClipLabel } from "./ClipLabel";
+import { NeedForEvolution } from "./NeedForEvolution";
 
-// Title card duration in seconds
-const TITLE_DURATION = 4;
+const TITLE_DURATION = 19;
+const VALUE_CARDS_DURATION = 12;
+const EVOLUTION_DURATION = 14;
+const CONSUMER_DURATION = CONSUMER_DURATION_SECONDS;
+const TRANSITION_FRAMES = 15;
 
-// Clips: { start: seconds, duration: seconds, label: string }
 const clips = [
-  { start: 83, duration: 98, label: "Collaborative Requirements Gathering with AI" },
-  { start: 315, duration: 60, label: "Research and Planning" },
-  { start: 1137, duration: 38, label: "Review the Specifications" },
+  { start: 83, duration: 97, label: "Discovery", phase: 1 },
+  { start: 315, duration: 115, label: "Research", phase: 2 },
+  { start: 948, duration: 88, label: "Analysis", phase: 3 },
+  { start: 1136, duration: 59, label: "Delivery", phase: 4 },
 ];
 
 export const SkillDemo: React.FC = () => {
   const { fps } = useVideoConfig();
   const src = staticFile("tf-plan-demo.mp4");
 
-  // Calculate frame positions
   const titleFrames = TITLE_DURATION * fps;
-  const clip1Frames = clips[0].duration * fps;
-  const clip2Frames = clips[1].duration * fps;
-  const clip3Frames = clips[2].duration * fps;
+  const evolutionFrames = EVOLUTION_DURATION * fps;
+  const valueCardsFrames = VALUE_CARDS_DURATION * fps;
+  const consumerFrames = CONSUMER_DURATION * fps;
+  const timing = linearTiming({ durationInFrames: TRANSITION_FRAMES });
+  const presentation = fade();
+
+  // Audio spans TitleCard + NeedForEvolution + ValueCards + ConsumerWorkflows minus three transition overlaps
+  const audioDuration = titleFrames + evolutionFrames + valueCardsFrames + consumerFrames - 3 * TRANSITION_FRAMES;
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
-      {/* Title Card */}
-      <Sequence from={0} durationInFrames={titleFrames}>
-        <TitleCard />
+      {/* Music: spans TitleCard → ConsumerWorkflows continuously */}
+      <Sequence from={0} durationInFrames={audioDuration}>
+        <Audio
+          src={staticFile("intro-music.mp3")}
+          volume={(f) => {
+            const fadeIn = interpolate(f, [0, 30], [0, 0.8], {
+              extrapolateRight: "clamp",
+            });
+            const fadeOut = interpolate(
+              f,
+              [audioDuration - 150, audioDuration],
+              [0.8, 0],
+              { extrapolateLeft: "clamp" },
+            );
+            return Math.min(fadeIn, fadeOut);
+          }}
+        />
       </Sequence>
 
-      {/* Clip 1: 1:23 - 3:01 */}
-      <Sequence from={titleFrames} durationInFrames={clip1Frames}>
-        <Video
-          src={src}
-          trimBefore={clips[0].start * fps}
-          style={{ width: "100%", height: "100%" }}
-        />
-        <ClipLabel label={clips[0].label} />
-      </Sequence>
+      <TransitionSeries>
+        {/* Title Card */}
+        <TransitionSeries.Sequence durationInFrames={titleFrames}>
+          <TitleCard />
+        </TransitionSeries.Sequence>
 
-      {/* Clip 2: 5:15 - 6:15 */}
-      <Sequence from={titleFrames + clip1Frames} durationInFrames={clip2Frames}>
-        <Video
-          src={src}
-          trimBefore={clips[1].start * fps}
-          style={{ width: "100%", height: "100%" }}
+        {/* Fade transition into Need for Evolution */}
+        <TransitionSeries.Transition
+          timing={timing}
+          presentation={presentation}
         />
-        <ClipLabel label={clips[1].label} />
-      </Sequence>
 
-      {/* Clip 3: 18:57 - 19:35 */}
-      <Sequence from={titleFrames + clip1Frames + clip2Frames} durationInFrames={clip3Frames}>
-        <Video
-          src={src}
-          trimBefore={clips[2].start * fps}
-          style={{ width: "100%", height: "100%" }}
+        {/* Need for Evolution */}
+        <TransitionSeries.Sequence durationInFrames={evolutionFrames}>
+          <NeedForEvolution />
+        </TransitionSeries.Sequence>
+
+        {/* Fade transition into Value Cards */}
+        <TransitionSeries.Transition
+          timing={timing}
+          presentation={presentation}
         />
-        <ClipLabel label={clips[2].label} />
-      </Sequence>
+
+        {/* Value Proposition Cards */}
+        <TransitionSeries.Sequence durationInFrames={valueCardsFrames}>
+          <ValueCards />
+        </TransitionSeries.Sequence>
+
+        {/* Fade transition into Consumer Workflows */}
+        <TransitionSeries.Transition
+          timing={timing}
+          presentation={presentation}
+        />
+
+        {/* Application Team Consumer Workflows */}
+        <TransitionSeries.Sequence durationInFrames={consumerFrames}>
+          <ConsumerWorkflows />
+        </TransitionSeries.Sequence>
+
+        {clips.map((clip, i) => {
+          const clipFrames = clip.duration * fps;
+          return [
+            <TransitionSeries.Transition
+              key={`t-${i}`}
+              timing={timing}
+              presentation={presentation}
+            />,
+            <TransitionSeries.Sequence
+              key={`c-${i}`}
+              durationInFrames={clipFrames}
+            >
+              <Video
+                src={src}
+                trimBefore={clip.start * fps}
+                trimAfter={(clip.start + clip.duration) * fps}
+                style={{ width: "100%", height: "100%" }}
+              />
+              <ClipLabel label={clip.label} phase={clip.phase} />
+            </TransitionSeries.Sequence>,
+          ];
+        })}
+      </TransitionSeries>
     </AbsoluteFill>
   );
 };
 
-// Total duration: title + clips
+// Total: title + evolution + valueCards + consumer + clips - transition overlaps
 export const getSkillDemoDuration = (fps: number) => {
-  const clipsDuration = clips.reduce((acc, clip) => acc + clip.duration * fps, 0);
-  return TITLE_DURATION * fps + clipsDuration;
+  const titleFrames = TITLE_DURATION * fps;
+  const evolutionFrames = EVOLUTION_DURATION * fps;
+  const valueCardsFrames = VALUE_CARDS_DURATION * fps;
+  const consumerFrames = CONSUMER_DURATION * fps;
+  const clipsFrames = clips.reduce((acc, clip) => acc + clip.duration * fps, 0);
+  // transitions: title→evolution, evolution→valueCards, valueCards→consumer, consumer→clip1, clip1→2, 2→3, 3→4
+  const transitionCount = 3 + clips.length;
+  const transitionOverlap = transitionCount * TRANSITION_FRAMES;
+  return titleFrames + evolutionFrames + valueCardsFrames + consumerFrames + clipsFrames - transitionOverlap;
 };
