@@ -339,41 +339,38 @@ export const NeedForEvolution: React.FC = () => {
               />
 
               {/* Label — slides in from left */}
-              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline" }}>
-                <span
-                  style={{
-                    fontFamily: interFontFamily,
-                    fontSize: 24,
-                    fontWeight: 700,
-                    color: isAmber ? AMBER : "#ffffff",
-                    letterSpacing: 1,
-                    opacity: labelOpacity,
-                    transform: `translateX(${labelX}px)`,
-                    textShadow: isAmber
-                      ? `0 0 14px rgba(245, 158, 11, 0.5)`
-                      : `0 0 14px rgba(123, 66, 188, 0.4)`,
-                    marginRight: 12,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {point.label}
-                </span>
+              <div
+                style={{
+                  fontFamily: interFontFamily,
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: isAmber ? AMBER : "#ffffff",
+                  letterSpacing: 1,
+                  opacity: labelOpacity,
+                  transform: `translateX(${labelX}px)`,
+                  textShadow: isAmber
+                    ? `0 0 14px rgba(245, 158, 11, 0.5)`
+                    : `0 0 14px rgba(123, 66, 188, 0.4)`,
+                  marginBottom: 6,
+                }}
+              >
+                {point.label}
+              </div>
 
-                {/* Description — clipPath wipe + blur clear */}
-                <span
-                  style={{
-                    fontFamily: interFontFamily,
-                    fontSize: 22,
-                    fontWeight: 300,
-                    color: "rgba(255, 255, 255, 0.75)",
-                    opacity: descOpacity,
-                    clipPath: `inset(0 ${100 - descReveal}% 0 0)`,
-                    filter: `blur(${descBlur}px)`,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  – {point.text}
-                </span>
+              {/* Description — clipPath wipe + blur clear */}
+              <div
+                style={{
+                  fontFamily: interFontFamily,
+                  fontSize: 21,
+                  fontWeight: 300,
+                  color: "rgba(255, 255, 255, 0.75)",
+                  opacity: descOpacity,
+                  clipPath: `inset(0 ${100 - descReveal}% 0 0)`,
+                  filter: `blur(${descBlur}px)`,
+                  lineHeight: 1.4,
+                }}
+              >
+                {point.text}
               </div>
             </div>
           );
@@ -386,7 +383,7 @@ export const NeedForEvolution: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          right: 60,
+          right: 200,
           top: 0,
           width: 520,
           height: "100%",

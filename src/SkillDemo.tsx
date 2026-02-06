@@ -8,11 +8,11 @@ import { ConsumerWorkflows, CONSUMER_DURATION_SECONDS } from "./ConsumerWorkflow
 import { ClipLabel } from "./ClipLabel";
 import { NeedForEvolution } from "./NeedForEvolution";
 
-const TITLE_DURATION = 19;
+const TITLE_DURATION = 22;
 const VALUE_CARDS_DURATION = 12;
 const EVOLUTION_DURATION = 14;
 const CONSUMER_DURATION = CONSUMER_DURATION_SECONDS;
-const TRANSITION_FRAMES = 15;
+const TRANSITION_FRAMES = 25;
 
 const clips = [
   { start: 83, duration: 97, label: "Discovery", phase: 1 },

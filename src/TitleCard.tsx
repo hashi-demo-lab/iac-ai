@@ -57,6 +57,19 @@ const AGENT_LOGOS = [
 
 const LOGO_TRAVERSE_FRAMES = 60; // 2s at 30fps
 
+// Rapid approach + lazy drift — one continuous arc per logo
+// Logos enter fast from edges, decelerate near center, then drift off
+const RAPID_START = 530;
+const RAPID_STAGGER = 4;
+const RAPID_PATHS = [
+  { fromLeft: true, yEnter: 340, pauseX: 800, approach: 26, driftAngle: -2.1, driftSpeed: 280, wobbleFreq: 0.09, wobbleAmp: 20, spin: 40 },
+  { fromLeft: false, yEnter: 540, pauseX: 1100, approach: 24, driftAngle: 0.6, driftSpeed: 240, wobbleFreq: 0.11, wobbleAmp: 18, spin: -55 },
+  { fromLeft: true, yEnter: 240, pauseX: 870, approach: 28, driftAngle: -0.7, driftSpeed: 300, wobbleFreq: 0.07, wobbleAmp: 24, spin: 30 },
+  { fromLeft: false, yEnter: 650, pauseX: 1050, approach: 22, driftAngle: 2.3, driftSpeed: 250, wobbleFreq: 0.1, wobbleAmp: 20, spin: -35 },
+  { fromLeft: true, yEnter: 440, pauseX: 920, approach: 26, driftAngle: 3.4, driftSpeed: 270, wobbleFreq: 0.08, wobbleAmp: 22, spin: 45 },
+];
+const DRIFT_FRAMES = 45;
+
 export const TitleCard: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -170,10 +183,10 @@ export const TitleCard: React.FC = () => {
   // Title dims, agent logos fly across the screen
   // ════════════════════════════════════════════════════════════════════
 
-  // Dim title content during flyovers
+  // Dim title content during flyovers + whirlwind
   const titleDimOpacity = interpolate(
     frame,
-    [405, 420, 495, 510],
+    [405, 420, 615, 630],
     [1.0, 0.35, 0.35, 1.0],
     CLAMP,
   );
@@ -181,7 +194,7 @@ export const TitleCard: React.FC = () => {
   // "Powered by AI Coding Agents" text
   const poweredTextOpacity = interpolate(
     frame,
-    [420, 440, 485, 500],
+    [420, 440, 610, 625],
     [0, 0.8, 0.8, 0],
     CLAMP,
   );
@@ -190,14 +203,16 @@ export const TitleCard: React.FC = () => {
   // BEAT 4: EXIT (frames 510–545)
   // ════════════════════════════════════════════════════════════════════
 
-  const exitScale = interpolate(frame, [510, 545], [1.0, 1.03], {
+  const exitScale = interpolate(frame, [630, 660], [1.0, 1.03], {
     ...CLAMP,
     easing: Easing.in(Easing.exp),
   });
-  const exitOpacity = interpolate(frame, [510, 545], [1, 0], {
+  const exitOpacity = interpolate(frame, [630, 660], [1, 0], {
     ...CLAMP,
     easing: Easing.in(Easing.exp),
   });
+
+  // (rapid approach + drift is computed inline in the JSX below)
 
   // Background glow — phase-aware
   let bgGlowOpacity: number;
@@ -326,6 +341,7 @@ export const TitleCard: React.FC = () => {
                 opacity: logoOpacity,
                 transform: `scale(${logoScale})`,
                 marginBottom: 40,
+                padding: "12px 20px",
                 borderRadius: 8,
                 boxShadow: `0 0 40px rgba(123, 66, 188, 0.3), 0 0 80px rgba(123, 66, 188, 0.15)`,
               }}
@@ -397,7 +413,7 @@ export const TitleCard: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════ */}
       {/* BEAT 3: AGENT LOGO FLYOVERS (frames 330–420)              */}
       {/* ══════════════════════════════════════════════════════════ */}
-      {frame >= 410 && frame <= 530 && (
+      {frame >= 410 && frame <= 650 && (
         <>
           {AGENT_LOGOS.map((logo, i) => {
             const localFrame = frame - logo.enterFrame;
@@ -474,11 +490,111 @@ export const TitleCard: React.FC = () => {
             );
           })}
 
+          {/* ── Continuous arc: rapid approach → lazy drift ─── */}
+          {AGENT_LOGOS.map((logo, i) => {
+            const path = RAPID_PATHS[i];
+            const enterFrame = RAPID_START + i * RAPID_STAGGER;
+            const totalFrames = path.approach + DRIFT_FRAMES;
+            const localFrame = frame - enterFrame;
+            if (localFrame < -3 || localFrame > totalFrames + 3) {
+              return null;
+            }
+
+            // ── Phase 1: Approach — fast entry, decelerating ──
+            const approachT = interpolate(
+              localFrame,
+              [0, path.approach],
+              [0, 1],
+              { ...CLAMP, easing: Easing.out(Easing.exp) },
+            );
+
+            const startX = path.fromLeft ? -160 : 2080;
+            const approachX = interpolate(approachT, [0, 1], [startX, path.pauseX]);
+            const approachY = path.yEnter + Math.sin(localFrame * 0.2) * 6;
+
+            // ── Phase 2: Drift — lazy departure from pause ──
+            const driftLocal = localFrame - path.approach;
+            const driftT = interpolate(
+              driftLocal,
+              [0, DRIFT_FRAMES],
+              [0, 1],
+              { ...CLAMP, easing: Easing.out(Easing.quad) },
+            );
+
+            const driftDist = driftT * path.driftSpeed;
+            const wobble =
+              Math.sin(driftLocal * path.wobbleFreq) * path.wobbleAmp * driftT;
+            const perpAngle = path.driftAngle + Math.PI / 2;
+            const driftDx =
+              Math.cos(path.driftAngle) * driftDist +
+              Math.cos(perpAngle) * wobble;
+            const driftDy =
+              Math.sin(path.driftAngle) * driftDist +
+              Math.sin(perpAngle) * wobble;
+
+            // ── Combined position — seamless blend ──
+            const inDrift = localFrame > path.approach;
+            const x = inDrift ? path.pauseX + driftDx : approachX;
+            const y = inDrift ? path.yEnter + driftDy : approachY;
+
+            // Scale: spring entrance, gentle shrink during drift
+            const scaleSpring = spring({
+              frame: Math.max(0, localFrame),
+              fps,
+              config: { damping: 18, stiffness: 90, mass: 0.6 },
+            });
+            const aScale = interpolate(scaleSpring, [0, 1], [0.4, 1.0]);
+            const dScale = inDrift
+              ? interpolate(driftT, [0, 1], [1.0, 0.7], CLAMP)
+              : 1.0;
+            const logoScale = aScale * dScale;
+
+            // Rotation: approach tilt → drift tumble
+            const approachRot = interpolate(
+              approachT,
+              [0, 1],
+              [path.fromLeft ? -15 : 15, 0],
+              CLAMP,
+            );
+            const driftRot = inDrift ? driftT * path.spin : 0;
+            const rotation = approachRot + driftRot;
+
+            // Opacity: fade in → hold → fade out
+            const fadeIn = interpolate(localFrame, [0, 10], [0, 1], CLAMP);
+            const fadeOut = inDrift
+              ? interpolate(driftT, [0, 0.15, 0.6, 1], [1, 1, 0.5, 0], CLAMP)
+              : 1;
+            const arcOpacity = fadeIn * fadeOut;
+
+            // Glow: bright arrival, fading drift
+            const glowIntensity = inDrift
+              ? interpolate(driftT, [0, 0.4, 0.8], [0.8, 0.4, 0], CLAMP)
+              : interpolate(approachT, [0, 0.5, 1], [0.3, 1.0, 0.8], CLAMP);
+
+            return (
+              <Img
+                key={`arc-${i}`}
+                src={staticFile(logo.src)}
+                style={{
+                  position: "absolute",
+                  width: 125,
+                  height: 125,
+                  objectFit: "contain",
+                  left: x - 62,
+                  top: y - 62,
+                  opacity: arcOpacity,
+                  transform: `scale(${logoScale}) rotate(${rotation}deg)`,
+                  filter: `drop-shadow(0 0 ${20 * glowIntensity}px rgba(123, 66, 188, ${0.6 * glowIntensity})) drop-shadow(0 0 ${45 * glowIntensity}px rgba(123, 66, 188, ${0.3 * glowIntensity}))`,
+                }}
+              />
+            );
+          })}
+
           {/* "Powered by AI Coding Agents" text */}
           <div
             style={{
               position: "absolute",
-              bottom: 120,
+              bottom: 170,
               width: "100%",
               textAlign: "center",
               opacity: poweredTextOpacity,
@@ -494,7 +610,7 @@ export const TitleCard: React.FC = () => {
                 textTransform: "uppercase" as const,
               }}
             >
-              Powered by AI Coding Agents
+              Powered by AI Coding Agents with Specification Driven Development
             </span>
           </div>
         </>

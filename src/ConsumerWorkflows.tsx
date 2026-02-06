@@ -28,7 +28,7 @@ const LINE_COLORS = [
   "#38BDF8", // sky
 ];
 
-export const CONSUMER_DURATION_SECONDS = 15;
+export const CONSUMER_DURATION_SECONDS = 20;
 
 export const ConsumerWorkflows: React.FC = () => {
   const frame = useCurrentFrame();
@@ -52,6 +52,28 @@ export const ConsumerWorkflows: React.FC = () => {
   });
 
   const linesOpacity = interpolate(frame, [15, 35], [0, 1], CLAMP);
+
+  // ════════════════════════════════════════════════════════════════════
+  // "Demo" label — fades in above title (frame 25)
+  // ════════════════════════════════════════════════════════════════════
+  const demoSpring = spring({
+    frame: Math.max(0, frame - 25),
+    fps,
+    config: { damping: 18, stiffness: 80, mass: 0.8 },
+  });
+  const demoY = interpolate(demoSpring, [0, 1], [40, 0]);
+  const demoOpacity = interpolate(frame, [25, 50], [0, 1], CLAMP);
+
+  // ════════════════════════════════════════════════════════════════════
+  // "AI Accelerated" — slides up after Demo (frame 32)
+  // ════════════════════════════════════════════════════════════════════
+  const accelSpring = spring({
+    frame: Math.max(0, frame - 32),
+    fps,
+    config: { damping: 17, stiffness: 80, mass: 0.9 },
+  });
+  const accelY = interpolate(accelSpring, [0, 1], [50, 0]);
+  const accelOpacity = interpolate(frame, [32, 58], [0, 1], CLAMP);
 
   // ════════════════════════════════════════════════════════════════════
   // "Application Team" — slides up from bottom-left (frame 40)
@@ -95,11 +117,11 @@ export const ConsumerWorkflows: React.FC = () => {
   ];
 
   // ════════════════════════════════════════════════════════════════════
-  // EXIT (last 30 frames)
+  // EXIT (last 60 frames)
   // ════════════════════════════════════════════════════════════════════
   const exitOpacity = interpolate(
     frame,
-    [durationInFrames - 30, durationInFrames],
+    [durationInFrames - 60, durationInFrames],
     [1, 0],
     CLAMP,
   );
@@ -159,6 +181,39 @@ export const ConsumerWorkflows: React.FC = () => {
           maxWidth: 900,
         }}
       >
+        {/* "Demo" label */}
+        <div
+          style={{
+            fontFamily: interFontFamily,
+            fontSize: 38,
+            fontWeight: 600,
+            color: "#7B42BC",
+            letterSpacing: 4,
+            textTransform: "uppercase" as const,
+            opacity: demoOpacity,
+            transform: `translateY(${demoY}px)`,
+            marginBottom: 12,
+          }}
+        >
+          Demo
+        </div>
+
+        {/* "AI Accelerated" */}
+        <div
+          style={{
+            fontFamily: interFontFamily,
+            fontSize: 52,
+            fontWeight: 700,
+            color: "rgba(255, 255, 255, 0.9)",
+            lineHeight: 1.1,
+            opacity: accelOpacity,
+            transform: `translateY(${accelY}px)`,
+            marginBottom: 10,
+          }}
+        >
+          AI Accelerated
+        </div>
+
         {/* "Application Team" */}
         <div
           style={{
