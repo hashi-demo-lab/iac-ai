@@ -5,6 +5,7 @@ import { fade } from "@remotion/transitions/fade";
 import { TitleCard } from "./TitleCard";
 import { ValueCards } from "./ValueCards";
 import { ConsumerWorkflows, CONSUMER_DURATION_SECONDS } from "./ConsumerWorkflows";
+import { WorkflowOverview, WORKFLOW_OVERVIEW_DURATION_SECONDS } from "./WorkflowOverview";
 import { ImplementWorkflows, IMPLEMENT_DURATION_SECONDS } from "./ImplementWorkflows";
 import { ClipLabel } from "./ClipLabel";
 import { NeedForEvolution } from "./NeedForEvolution";
@@ -13,14 +14,15 @@ const TITLE_DURATION = 22;
 const VALUE_CARDS_DURATION = 12;
 const EVOLUTION_DURATION = 14;
 const CONSUMER_DURATION = CONSUMER_DURATION_SECONDS;
+const WORKFLOW_OVERVIEW_DURATION = WORKFLOW_OVERVIEW_DURATION_SECONDS;
 const IMPLEMENT_DURATION = IMPLEMENT_DURATION_SECONDS;
 const TRANSITION_FRAMES = 25;
 
 const clips = [
-  { start: 83, duration: 97, label: "Discovery", phase: 1 },
-  { start: 315, duration: 115, label: "Research", phase: 2 },
-  { start: 948, duration: 88, label: "Analysis", phase: 3 },
-  { start: 1136, duration: 59, label: "Delivery", phase: 4 },
+  { start: 83, duration: 97, label: "Collaborative requirements gathering", phase: 1 },
+  { start: 315, duration: 115, label: "Task tracking GitHub Issues", phase: 2 },
+  { start: 948, duration: 88, label: "Research and analysis", phase: 3 },
+  { start: 1136, duration: 59, label: "Specification outputs", phase: 4 },
 ];
 
 const applyClips = [
@@ -70,33 +72,20 @@ export const SkillDemo: React.FC = () => {
   const evolutionFrames = EVOLUTION_DURATION * fps;
   const valueCardsFrames = VALUE_CARDS_DURATION * fps;
   const consumerFrames = CONSUMER_DURATION * fps;
+  const workflowOverviewFrames = WORKFLOW_OVERVIEW_DURATION * fps;
   const implementFrames = IMPLEMENT_DURATION * fps;
   const timing = linearTiming({ durationInFrames: TRANSITION_FRAMES });
   const presentation = fade();
   const videoPresentation = fadeThroughBlack();
 
-  // Audio spans TitleCard + NeedForEvolution + ValueCards + ConsumerWorkflows minus three transition overlaps
-  const audioDuration = titleFrames + evolutionFrames + valueCardsFrames + consumerFrames - 3 * TRANSITION_FRAMES;
+  // Audio spans 106 seconds (fade out from 98s baked into file)
+  const audioDuration = Math.round(106 * fps);
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
-      {/* Music: spans TitleCard → ConsumerWorkflows continuously */}
+      {/* Music: 122.13s with fade baked into file, fade out from 105s */}
       <Sequence from={0} durationInFrames={audioDuration}>
-        <Audio
-          src={staticFile("intro-music.mp3")}
-          volume={(f) => {
-            const fadeIn = interpolate(f, [0, 30], [0, 0.8], {
-              extrapolateRight: "clamp",
-            });
-            const fadeOut = interpolate(
-              f,
-              [audioDuration - 150, audioDuration],
-              [0.8, 0],
-              { extrapolateLeft: "clamp" },
-            );
-            return Math.min(fadeIn, fadeOut);
-          }}
-        />
+        <Audio src={staticFile("intro-music.mp3")} volume={0.8} />
       </Sequence>
 
       <TransitionSeries>
@@ -136,6 +125,17 @@ export const SkillDemo: React.FC = () => {
         {/* Application Team Consumer Workflows */}
         <TransitionSeries.Sequence durationInFrames={consumerFrames}>
           <ConsumerWorkflows />
+        </TransitionSeries.Sequence>
+
+        {/* Fade transition into Workflow Overview */}
+        <TransitionSeries.Transition
+          timing={timing}
+          presentation={presentation}
+        />
+
+        {/* Workflow Overview — pipeline build-out */}
+        <TransitionSeries.Sequence durationInFrames={workflowOverviewFrames}>
+          <WorkflowOverview />
         </TransitionSeries.Sequence>
 
         {clips.map((clip, i) => {
@@ -199,18 +199,19 @@ export const SkillDemo: React.FC = () => {
   );
 };
 
-// Total: title + evolution + valueCards + consumer + planClips + implement + applyClips - transition overlaps
+// Total: title + evolution + valueCards + consumer + workflowOverview + planClips + implement + applyClips - transition overlaps
 export const getSkillDemoDuration = (fps: number) => {
   const titleFrames = TITLE_DURATION * fps;
   const evolutionFrames = EVOLUTION_DURATION * fps;
   const valueCardsFrames = VALUE_CARDS_DURATION * fps;
   const consumerFrames = CONSUMER_DURATION * fps;
+  const workflowOverviewFrames = WORKFLOW_OVERVIEW_DURATION * fps;
   const implementFrames = IMPLEMENT_DURATION * fps;
   const clipsFrames = clips.reduce((acc, clip) => acc + clip.duration * fps, 0);
   const applyClipsFrames = applyClips.reduce((acc, clip) => acc + clip.duration * fps, 0);
   // transitions: title→evolution, evolution→valueCards, valueCards→consumer,
-  // consumer→clip1..clip4, clip4→implement, implement→applyClip1..applyClip5
-  const transitionCount = 3 + clips.length + 1 + applyClips.length;
+  // consumer→workflowOverview, workflowOverview→clip1..clip4, clip4→implement, implement→applyClip1..applyClip5
+  const transitionCount = 4 + clips.length + 1 + applyClips.length;
   const transitionOverlap = transitionCount * TRANSITION_FRAMES;
-  return titleFrames + evolutionFrames + valueCardsFrames + consumerFrames + implementFrames + clipsFrames + applyClipsFrames - transitionOverlap;
+  return titleFrames + evolutionFrames + valueCardsFrames + consumerFrames + workflowOverviewFrames + implementFrames + clipsFrames + applyClipsFrames - transitionOverlap;
 };

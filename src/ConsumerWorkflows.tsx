@@ -195,7 +195,7 @@ export const ConsumerWorkflows: React.FC = () => {
             marginBottom: 12,
           }}
         >
-          Demo
+          Demo &mdash; /tf-plan skill
         </div>
 
         {/* "AI Accelerated" */}

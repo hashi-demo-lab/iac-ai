@@ -194,7 +194,7 @@ export const ImplementWorkflows: React.FC = () => {
             marginBottom: 12,
           }}
         >
-          Demo &mdash; Terraform Implement
+          Demo &mdash; /tf-implement skill
         </div>
 
         {/* "AI Accelerated" */}
