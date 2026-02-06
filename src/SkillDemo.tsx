@@ -85,7 +85,9 @@ export const SkillDemo: React.FC = () => {
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
       {/* Music: 122.13s with fade baked into file, fade out from 105s */}
       <Sequence from={0} durationInFrames={audioDuration}>
-        <Audio src={staticFile("intro-music.mp3")} volume={0.8} />
+        <Audio src={staticFile("intro-music.mp3")} volume={(f) =>
+          interpolate(f, [0, 5], [0, 0.8], { extrapolateRight: "clamp" })
+        } />
       </Sequence>
 
       <TransitionSeries>
