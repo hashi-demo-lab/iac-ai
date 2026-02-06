@@ -47,7 +47,7 @@ const CARDS: CardData[] = [
       "Minimize service risk through validated modules",
       "Auto-align infrastructure to security policies",
     ],
-    tagline: "Hours → Minutes",
+    tagline: "Reduce Time to Deploy",
   },
   {
     icon: "🌐",
