@@ -78,8 +78,8 @@ export const SkillDemo: React.FC = () => {
   const presentation = fade();
   const videoPresentation = fadeThroughBlack();
 
-  // Audio spans 106 seconds (fade out from 98s baked into file)
-  const audioDuration = Math.round(106 * fps);
+  // Audio spans 85 seconds (fade out from 77s baked into file)
+  const audioDuration = Math.round(85 * fps);
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
@@ -155,6 +155,11 @@ export const SkillDemo: React.FC = () => {
                 trimBefore={clip.start * fps}
                 trimAfter={(clip.start + clip.duration) * fps}
                 style={{ width: "100%", height: "100%" }}
+                volume={(f) => {
+                  const vIn = interpolate(f, [0, fps], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+                  const vOut = interpolate(f, [clipFrames - fps, clipFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+                  return Math.min(vIn, vOut);
+                }}
               />
               <ClipLabel label={clip.label} phase={clip.phase} />
             </TransitionSeries.Sequence>,
@@ -189,6 +194,11 @@ export const SkillDemo: React.FC = () => {
                 trimBefore={clip.start * fps}
                 trimAfter={(clip.start + clip.duration) * fps}
                 style={{ width: "100%", height: "100%" }}
+                volume={(f) => {
+                  const vIn = interpolate(f, [0, fps], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+                  const vOut = interpolate(f, [clipFrames - fps, clipFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+                  return Math.min(vIn, vOut);
+                }}
               />
               <ClipLabel label={clip.label} phase={clip.phase} />
             </TransitionSeries.Sequence>,
