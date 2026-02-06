@@ -19,7 +19,7 @@ const IMPLEMENT_DURATION = IMPLEMENT_DURATION_SECONDS;
 const TRANSITION_FRAMES = 25;
 
 const clips = [
-  { start: 83, duration: 100, label: "Collaborative requirements gathering", phase: 1 },
+  { start: 56, duration: 127, label: "Collaborative requirements gathering", phase: 1 },
   { start: 316, duration: 112, label: "Task tracking GitHub Issues", phase: 2 },
   { start: 948, duration: 115, label: "Research and analysis", phase: 3 },
   { start: 1136, duration: 59, label: "Specification outputs", phase: 4 },
@@ -30,7 +30,7 @@ const applyClips = [
   { start: 361, duration: 144, label: "Task implementation", phase: 2 },
   { start: 636, duration: 120, label: "Code review", phase: 3 },
   { start: 1051, duration: 130, label: "Deploy HCP Terraform", phase: 4 },
-  { start: 1677, duration: 123, label: "Review implementation report", phase: 5 },
+  { start: 1675, duration: 125, label: "Review implementation report", phase: 5 },
 ];
 
 // Fade through black — outgoing fades out, brief black, incoming fades in
