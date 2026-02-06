@@ -21,16 +21,16 @@ const TRANSITION_FRAMES = 25;
 const clips = [
   { start: 83, duration: 100, label: "Collaborative requirements gathering", phase: 1 },
   { start: 316, duration: 112, label: "Task tracking GitHub Issues", phase: 2 },
-  { start: 948, duration: 96, label: "Research and analysis", phase: 3 },
+  { start: 948, duration: 115, label: "Research and analysis", phase: 3 },
   { start: 1136, duration: 59, label: "Specification outputs", phase: 4 },
 ];
 
 const applyClips = [
-  { start: 0, duration: 91, label: "Kick-off", phase: 1 },
-  { start: 361, duration: 144, label: "Implementation", phase: 2 },
-  { start: 644, duration: 112, label: "Review", phase: 3 },
-  { start: 1051, duration: 130, label: "Deployment", phase: 4 },
-  { start: 1699, duration: 101, label: "Reporting", phase: 5 },
+  { start: 0, duration: 129, label: "Start implementation", phase: 1 },
+  { start: 361, duration: 144, label: "Task implementation", phase: 2 },
+  { start: 636, duration: 120, label: "Code review", phase: 3 },
+  { start: 1051, duration: 130, label: "Deploy HCP Terraform", phase: 4 },
+  { start: 1677, duration: 123, label: "Review implementation report", phase: 5 },
 ];
 
 // Fade through black — outgoing fades out, brief black, incoming fades in
