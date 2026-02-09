@@ -319,6 +319,7 @@ const ClipTitle: React.FC<{ text: string }> = ({ text }) => {
 
   const isTyping = charsVisible < text.length && frame >= TYPEWRITER_START_DELAY;
   const doneTypingAt = TYPEWRITER_START_DELAY + typingFrames;
+  const settlingEnd = doneTypingAt + Math.round(fps * 1);
   const fadeOutStart = doneTypingAt + holdFrames;
   const fadeOutEnd = fadeOutStart + fadeFrames;
 
@@ -330,6 +331,31 @@ const ClipTitle: React.FC<{ text: string }> = ({ text }) => {
     extrapolateRight: "clamp",
   });
 
+  // ── Glow intensity tied to cursor lifecycle ──
+  // Phase 1: Anticipation — gentle breathing pulse
+  // Phase 2: Typing — bright, intensifies with progress
+  // Phase 3: Settling — pulses with cursor blinks
+  // Phase 4: Hold — calm ambient glow
+  let glowIntensity: number;
+  if (frame < TYPEWRITER_START_DELAY) {
+    // Anticipation: gentle sine breathing
+    glowIntensity = 0.3 + 0.15 * Math.sin(frame * 0.5);
+  } else if (isTyping) {
+    // Typing: ramps up as chars appear, with a subtle flicker
+    const progress = charsVisible / text.length;
+    glowIntensity = 0.5 + 0.5 * progress + 0.05 * Math.sin(frame * 0.8);
+  } else if (frame < settlingEnd) {
+    // Settling: pulses with cursor blink rhythm
+    const blinkOn = Math.floor(frame / 10) % 2 === 0;
+    glowIntensity = blinkOn ? 0.7 : 0.35;
+  } else {
+    // Hold: calm ambient
+    glowIntensity = 0.3;
+  }
+
+  const ringGlow = `0 0 ${6 + 14 * glowIntensity}px rgba(123, 66, 188, ${0.15 + 0.45 * glowIntensity}), inset 0 0 ${4 + 8 * glowIntensity}px rgba(123, 66, 188, ${0.05 + 0.12 * glowIntensity})`;
+  const ringBorder = `1.5px solid rgba(123, 66, 188, ${0.25 + 0.45 * glowIntensity})`;
+
   if (frame < TYPEWRITER_START_DELAY && charsVisible === 0) {
     const cursorOn = Math.floor(frame / 10) % 2 === 0;
     return (
@@ -338,6 +364,8 @@ const ClipTitle: React.FC<{ text: string }> = ({ text }) => {
           style={{
             ...bannerStyle,
             transform: `translateX(${slideIn}px)`,
+            border: ringBorder,
+            boxShadow: ringGlow,
           }}
         >
           <div style={accentBarStyle} />
@@ -360,7 +388,7 @@ const ClipTitle: React.FC<{ text: string }> = ({ text }) => {
   let showCursor = false;
   if (isTyping) {
     showCursor = true;
-  } else if (frame < doneTypingAt + Math.round(fps * 1)) {
+  } else if (frame < settlingEnd) {
     showCursor = Math.floor(frame / 10) % 2 === 0;
   }
 
@@ -371,6 +399,8 @@ const ClipTitle: React.FC<{ text: string }> = ({ text }) => {
           ...bannerStyle,
           opacity,
           transform: `translateX(${slideIn}px)`,
+          border: ringBorder,
+          boxShadow: ringGlow,
         }}
       >
         <div style={accentBarStyle} />
