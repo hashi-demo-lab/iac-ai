@@ -10,6 +10,9 @@ import { Audio, Video } from "@remotion/media";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { loadFont } from "@remotion/google-fonts/Inter";
 import { loadFont as loadMonoFont } from "@remotion/google-fonts/GeistMono";
+import { ConsumerWorkflows } from "./ConsumerWorkflows";
+import { WorkflowOverview } from "./WorkflowOverview";
+import { ImplementWorkflows } from "./ImplementWorkflows";
 
 const { fontFamily } = loadFont("normal", {
   subsets: ["latin"],
@@ -553,28 +556,39 @@ export const SkillDemo: React.FC = () => {
   const planSrc = staticFile("tf-plan-demo.mp4");
   const applySrc = staticFile("tf-apply skill demo.mp4");
 
-  const sectionTitleFrames = SECTION_TITLE_DURATION * fps;
+  const consumerFrames = 10 * fps;
+  const workflowFrames = 20 * fps;
+  const implementFrames = 10 * fps;
   const timing = linearTiming({ durationInFrames: TRANSITION_FRAMES });
   const presentation = fadeThroughBlack();
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
       <TransitionSeries>
-        {/* ── Plan Phase title ── */}
-        <TransitionSeries.Sequence durationInFrames={sectionTitleFrames}>
-          <SectionTitle title="Plan Phase" subtitle="tf-plan skill demo" />
+        {/* ── Plan Phase intro: ConsumerWorkflows ── */}
+        <TransitionSeries.Sequence durationInFrames={consumerFrames}>
+          <ConsumerWorkflows />
+        </TransitionSeries.Sequence>
+
+        {/* ── Plan Phase intro: WorkflowOverview ── */}
+        <TransitionSeries.Transition
+          timing={timing}
+          presentation={presentation}
+        />
+        <TransitionSeries.Sequence durationInFrames={workflowFrames}>
+          <WorkflowOverview />
         </TransitionSeries.Sequence>
 
         {/* ── Plan clips ── */}
         {renderClips(planClips, planSrc, fps, "plan", timing, presentation)}
 
-        {/* ── Apply Phase title ── */}
+        {/* ── Apply Phase intro: ImplementWorkflows ── */}
         <TransitionSeries.Transition
           timing={timing}
           presentation={presentation}
         />
-        <TransitionSeries.Sequence durationInFrames={sectionTitleFrames}>
-          <SectionTitle title="Apply Phase" subtitle="tf-apply skill demo" />
+        <TransitionSeries.Sequence durationInFrames={implementFrames}>
+          <ImplementWorkflows />
         </TransitionSeries.Sequence>
 
         {/* ── Apply clips ── */}
@@ -587,7 +601,9 @@ export const SkillDemo: React.FC = () => {
 // ── Duration calculator ─────────────────────────────────────────────────────
 
 export const getSkillDemoDuration = (fps: number) => {
-  const sectionTitleFrames = 2 * SECTION_TITLE_DURATION * fps; // 2 title cards
+  // Intro sequences: ConsumerWorkflows (10s) + WorkflowOverview (20s) + ImplementWorkflows (10s)
+  const introFrames = (10 + 20 + 10) * fps;
+
   const planFrames = planClips.reduce(
     (acc, clip) => acc + Math.round(clip.duration * fps),
     0
@@ -602,11 +618,12 @@ export const getSkillDemoDuration = (fps: number) => {
       acc + (clip.pause ? Math.round(clip.pause.holdDuration * fps) : 0),
     0
   );
-  // Transitions: planTitle→clip1, between plan clips (9), lastPlan→applyTitle,
-  // applyTitle→clip1, between apply clips (10)
+  // Transitions: ConsumerWorkflows→WorkflowOverview, WorkflowOverview→clip1,
+  // between plan clips, lastPlan→ImplementWorkflows,
+  // ImplementWorkflows→clip1, between apply clips
   const transitionCount =
-    planClips.length + 1 + applyClips.length;
+    1 + planClips.length + 1 + applyClips.length;
   const transitionOverlap = transitionCount * TRANSITION_FRAMES;
 
-  return sectionTitleFrames + planFrames + applyFrames + pauseFrames - transitionOverlap;
+  return introFrames + planFrames + applyFrames + pauseFrames - transitionOverlap;
 };
