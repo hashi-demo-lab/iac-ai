@@ -30,8 +30,8 @@ const SKY = "#38BDF8";
 // Ring geometry
 // ════════════════════════════════════════════════════════════════════════════════
 const CX = 960;
-const CY = 540;
-const RADIUS = 380;
+const CY = 555;
+const RADIUS = 437;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -45,7 +45,15 @@ interface StageClip {
   playbackRate: number;
   sourceDuration: number; // seconds of source video
   zoomTarget: { x: number; y: number; scale: number };
+  bgColor: string; // Background color behind video to match content
+  sourceStartSeconds?: number; // Skip into source video by this many seconds
 }
+
+// Compute minimum scale that avoids black edges for an off-center zoom target
+const safeMinScale = (x: number, y: number): number => {
+  const maxOffset = Math.max(Math.abs(x - 0.5), Math.abs(y - 0.5));
+  return maxOffset > 0 ? 1 / (1 - 2 * maxOffset) : 1.0;
+};
 
 // Developer Input — outside the ring as the human trigger
 const DEVELOPER_INPUT: StageClip = {
@@ -55,7 +63,8 @@ const DEVELOPER_INPUT: StageClip = {
   phase: "plan",
   playbackRate: 2.5,
   sourceDuration: 30,
-  zoomTarget: { x: 0.65, y: 0.2, scale: 1.7 }, // VS Code terminal: /tf-plan prompt area
+  zoomTarget: { x: 0.5, y: 0.5, scale: 1.0 }, // No zoom — show full frame
+  bgColor: "#1e1e2e",
 };
 
 // 9 stages on the ring in chronological order
@@ -68,6 +77,7 @@ const RING_STAGES: StageClip[] = [
     playbackRate: 1.6,
     sourceDuration: 20,
     zoomTarget: { x: 0.65, y: 0.3, scale: 1.7 }, // VS Code terminal: validation script + MCP tools
+    bgColor: "#1e1e2e",
   },
   {
     label: "Requirements",
@@ -77,6 +87,7 @@ const RING_STAGES: StageClip[] = [
     playbackRate: 3.0,
     sourceDuration: 40,
     zoomTarget: { x: 0.65, y: 0.65, scale: 1.7 }, // VS Code terminal: interview Q&A options
+    bgColor: "#1e1e2e",
   },
   {
     label: "Specification",
@@ -86,6 +97,7 @@ const RING_STAGES: StageClip[] = [
     playbackRate: 3.5,
     sourceDuration: 40,
     zoomTarget: { x: 0.35, y: 0.35, scale: 1.7 }, // Split: spec.md editor content (left pane)
+    bgColor: "#1e1e2e",
   },
   {
     label: "Implementation",
@@ -95,33 +107,27 @@ const RING_STAGES: StageClip[] = [
     playbackRate: 2.0,
     sourceDuration: 25,
     zoomTarget: { x: 0.65, y: 0.6, scale: 2.2 }, // VS Code terminal: Phase 2 agent launch + phase list
+    bgColor: "#1e1e2e",
   },
   {
-    label: "Write & Validate TF",
+    label: "HCP Private Modules",
     icon: "📦",
     source: "clip-05-write-validate-tf.mp4",
     phase: "impl",
-    playbackRate: 3.5,
+    playbackRate: 2.0,
     sourceDuration: 40,
-    zoomTarget: { x: 0.25, y: 0.4, scale: 2.0 }, // Split: main.tf HCL code — S3, CloudFront, encryption (left editor, tight zoom)
+    zoomTarget: { x: 0.25, y: 0.35, scale: 2.3 }, // Split: main.tf HCL code — S3, CloudFront, encryption (left editor, tight zoom)
+    bgColor: "#1e1e2e",
   },
   {
     label: "Security Review",
     icon: "⚖️",
     source: "clip-06-security-review.mp4",
     phase: "impl",
-    playbackRate: 3.0,
+    playbackRate: 2.0,
     sourceDuration: 30,
     zoomTarget: { x: 0.3, y: 0.3, scale: 1.7 }, // Split: security-review.md findings (left editor)
-  },
-  {
-    label: "Deploy to HCP TF",
-    icon: "🚀",
-    source: "clip-07-deploy-hcp-terraform.mp4",
-    phase: "impl",
-    playbackRate: 2.5,
-    sourceDuration: 30,
-    zoomTarget: { x: 0.5, y: 0.4, scale: 1.5 }, // Browser: TF Cloud workspace + "Applied" badge + run list
+    bgColor: "#1e1e2e",
   },
   {
     label: "Policy as Code",
@@ -129,22 +135,34 @@ const RING_STAGES: StageClip[] = [
     source: "clip-08-policy-as-code.mp4",
     phase: "impl",
     playbackRate: 2.0,
-    sourceDuration: 30,
-    zoomTarget: { x: 0.35, y: 0.65, scale: 1.7 }, // Browser: "Sentinel policies passed" heading + CIS/FSBP policy sets table
+    sourceDuration: 13, // Sentinel policies passed with terraform plan resources
+    zoomTarget: { x: 0.5, y: 0.5, scale: 1.0 }, // Full frame — Sentinel policies passed + policy sets
+    bgColor: "#ffffff",
   },
   {
-    label: "Report & PR",
+    label: "HCP TF Applied",
+    icon: "🚀",
+    source: "clip-07-deploy-hcp-terraform.mp4",
+    phase: "impl",
+    playbackRate: 1.0,
+    sourceDuration: 4, // TF Cloud workspace overview showing Applied status
+    zoomTarget: { x: 0.5, y: 0.5, scale: 1.0 }, // Full frame — workspace Applied overview
+    bgColor: "#ffffff",
+  },
+  {
+    label: "PR Creation",
     icon: "🔍",
     source: "clip-09-report-pr.mp4",
     phase: "impl",
-    playbackRate: 3.0,
-    sourceDuration: 35,
-    zoomTarget: { x: 0.3, y: 0.3, scale: 1.7 }, // Split: deployment report metrics (left editor)
+    playbackRate: 1.0,
+    sourceDuration: 5.5, // GitHub PR creation with issue linkage
+    zoomTarget: { x: 0.5, y: 0.5, scale: 1.0 }, // Full frame — GitHub issue + VS Code PR creation
+    bgColor: "#ffffff",
   },
 ];
 
-// All clips for iteration (developer input + ring stages)
-const ALL_CLIPS = [DEVELOPER_INPUT, ...RING_STAGES];
+// All clips for video preview (ring stages only — Developer Input is visual-only)
+const ALL_CLIPS = RING_STAGES;
 
 // Angle for each ring stage (starting from top, going clockwise)
 const ringAngle = (i: number) =>
@@ -168,18 +186,8 @@ interface ClipScheduleEntry {
 function buildClipSchedule(): ClipScheduleEntry[] {
   const schedule: ClipScheduleEntry[] = [];
 
-  // Developer Input: frames 90–390 (10s at 30fps, after entrance)
-  const devStart = 90;
-  const devSceneSeconds = DEVELOPER_INPUT.sourceDuration / DEVELOPER_INPUT.playbackRate;
-  const devFrames = Math.round(devSceneSeconds * FPS);
-  schedule.push({
-    startFrame: devStart,
-    endFrame: devStart + devFrames,
-    durationFrames: devFrames,
-  });
-
-  // Ring stages start after developer input + gap
-  let cursor = devStart + devFrames + 30; // 30 frame gap
+  // Ring stages start after entrance animation + breathing room
+  let cursor = 110; // ~3.7s of ring entrance before first clip
 
   // Plan stages (indices 0-2 in RING_STAGES): Environment, Requirements, Specification
   for (let i = 0; i < 3; i++) {
@@ -224,33 +232,34 @@ const EXIT_END = CELEBRATION_END + 120;
 // ════════════════════════════════════════════════════════════════════════════════
 // Video preview dimensions
 // ════════════════════════════════════════════════════════════════════════════════
-const PREVIEW_W = 680;
-const PREVIEW_H = 383;
+const PREVIEW_W = 782;
+const PREVIEW_H = 440;
 const PREVIEW_X = CX - PREVIEW_W / 2;
-const PREVIEW_Y = CY - PREVIEW_H / 2 - 30;
+const PREVIEW_Y = CY - PREVIEW_H / 2 - 25;
 
 export const AGENT_IN_ACTION_DURATION_SECONDS = Math.ceil(EXIT_END / FPS);
 
 // ════════════════════════════════════════════════════════════════════════════════
 // Developer Input position — outside ring, top-left with arrow
 // ════════════════════════════════════════════════════════════════════════════════
-const DEV_INPUT_X = 160;
-const DEV_INPUT_Y = 120;
+const DEV_INPUT_X = 280;
+const DEV_INPUT_Y = 80;
+const DEV_REVIEW_X = 1640;
+const DEV_REVIEW_Y = 80;
 
 // ════════════════════════════════════════════════════════════════════════════════
 // Clip descriptions
 // ════════════════════════════════════════════════════════════════════════════════
 const CLIP_DESCRIPTIONS = [
-  "Defining infrastructure requirements",
   "Validating environment & MCP tools",
   "Gathering requirements & creating issues",
   "Generating specs & running checklists",
   "Launching task executors",
-  "Writing & validating Terraform code",
+  "Terraform using HCP Private registry modules",
   "Security advisor & code quality review",
-  "Deploying to HCP Terraform",
   "Enforcing Sentinel policy checks",
-  "Generating report & creating PR",
+  "HCP Terraform Applied",
+  "Creating PR with issue linkage",
 ];
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -304,9 +313,9 @@ export const AgentInAction: React.FC = () => {
   const gridOpacity = interpolate(frame, [0, 40], [0, 0.35], CLAMP);
 
   // ── Phase labels ────────────────────────────────────────────────────────
-  // Plan: clips 1-3 (indices 1-3 in CLIP_SCHEDULE)
-  const planStart = CLIP_SCHEDULE[1].startFrame;
-  const planEnd = CLIP_SCHEDULE[3].endFrame;
+  // Plan: clips 0-2 (indices 0-2 in CLIP_SCHEDULE)
+  const planStart = CLIP_SCHEDULE[0].startFrame;
+  const planEnd = CLIP_SCHEDULE[2].endFrame;
   const planLabelOpacity = interpolate(
     frame,
     [planStart - 20, planStart, planEnd - 20, planEnd],
@@ -314,9 +323,9 @@ export const AgentInAction: React.FC = () => {
     CLAMP,
   );
 
-  // Impl: clips 4-9 (indices 4-9 in CLIP_SCHEDULE)
-  const implStart = CLIP_SCHEDULE[4].startFrame;
-  const implEnd = CLIP_SCHEDULE[9].endFrame;
+  // Impl: clips 3-8 (indices 3-8 in CLIP_SCHEDULE)
+  const implStart = CLIP_SCHEDULE[3].startFrame;
+  const implEnd = CLIP_SCHEDULE[8].endFrame;
   const implLabelOpacity = interpolate(
     frame,
     [implStart - 20, implStart, implEnd - 20, implEnd],
@@ -333,8 +342,8 @@ export const AgentInAction: React.FC = () => {
   };
   const activeClipIdx = getActiveClipIndex();
 
-  // Map clip index to ring stage index (-1 for developer input which is outside ring)
-  const activeRingIdx = activeClipIdx > 0 ? activeClipIdx - 1 : -1;
+  // Clip index now maps directly to ring stage index
+  const activeRingIdx = activeClipIdx;
 
   // ── Active arc — follows current ring stage ───────────────────────────
   const arcAngle = activeRingIdx >= 0 ? ringAngle(activeRingIdx) : -Math.PI / 2;
@@ -359,9 +368,8 @@ export const AgentInAction: React.FC = () => {
   // ── Active clip color ──────────────────────────────────────────────────
   const getActiveColor = () => {
     if (activeClipIdx < 0) return PURPLE;
-    if (activeClipIdx === 0) return PURPLE; // Developer Input
     const ringStage = RING_STAGES[activeRingIdx];
-    if (activeRingIdx === 6) return SKY; // Deploy stage
+    if (activeRingIdx === 7) return SKY; // Deploy stage
     return ringStage.phase === "plan" ? PURPLE : INDIGO;
   };
   const activeColor = getActiveColor();
@@ -376,15 +384,29 @@ export const AgentInAction: React.FC = () => {
   const exitOpacity = interpolate(frame, [CELEBRATION_END, EXIT_END], [1, 0], CLAMP);
   const exitScale = interpolate(frame, [CELEBRATION_END, EXIT_END], [1, 1.03], CLAMP);
 
-  // ── SVG arc path for active highlight ─────────────────────────────────
+  // ── SVG arc path for active highlight — centered on energy dot ────────
   const arcLength = CIRCUMFERENCE * 0.15;
-  const arcOffset =
-    CIRCUMFERENCE - ((arcAngle + Math.PI / 2) / (Math.PI * 2)) * CIRCUMFERENCE;
+  const rawArcOffset = (-energyAngle / (Math.PI * 2)) * CIRCUMFERENCE + arcLength / 2;
+  const arcOffset = ((rawArcOffset % CIRCUMFERENCE) + CIRCUMFERENCE) % CIRCUMFERENCE;
 
-  // ── Developer Input active state ──────────────────────────────────────
-  const devInputActive = activeClipIdx === 0;
+  // ── Developer Input active state (visual only, no clip) ──────────────
+  const devInputActive = false;
   const devInputGlow = devInputActive
     ? `0 0 20px ${PURPLE}80, 0 0 40px ${PURPLE}40`
+    : "none";
+
+  // ── Developer PR Review node — appears during celebration ──────────
+  const devReviewEntrance = (() => {
+    const s = spring({
+      frame: Math.max(0, frame - CELEBRATION_START),
+      fps,
+      config: { damping: 14, stiffness: 100, mass: 0.7 },
+    });
+    return interpolate(s, [0, 1], [0, 1]);
+  })();
+  const devReviewActive = frame >= CELEBRATION_START && frame < CELEBRATION_END;
+  const devReviewGlow = devReviewActive
+    ? `0 0 20px ${INDIGO}80, 0 0 40px ${INDIGO}40`
     : "none";
 
   return (
@@ -418,43 +440,79 @@ export const AgentInAction: React.FC = () => {
       />
 
       {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* DEVELOPER INPUT — outside ring, top-left trigger node              */}
+      {/* DEVELOPER COLLABORATION — outside ring, top-left card              */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       <div
         style={{
           position: "absolute",
-          left: DEV_INPUT_X - 80,
-          top: DEV_INPUT_Y - 22,
-          width: 160,
-          height: 44,
+          left: DEV_INPUT_X - 130,
+          top: DEV_INPUT_Y - 36,
+          width: 260,
+          height: 72,
           opacity: devInputEntrance,
-          transform: `scale(${devInputEntrance * (devInputActive ? 1.08 : 1)})`,
+          transform: `scale(${devInputEntrance * (devInputActive ? 1.05 : 1)})`,
           transformOrigin: "center center",
-          borderRadius: 22,
-          border: `2px solid ${devInputActive ? PURPLE : `${PURPLE}50`}`,
-          background: devInputActive
-            ? `linear-gradient(135deg, ${PURPLE}30, rgba(15, 15, 20, 0.92))`
-            : `rgba(15, 15, 20, 0.88)`,
-          boxShadow: devInputGlow,
+          borderRadius: 16,
+          border: `1.5px solid ${PURPLE}80`,
+          background: `linear-gradient(145deg, ${PURPLE}30, rgba(20, 16, 30, 0.95) 70%)`,
+          boxShadow: devInputActive
+            ? `0 0 20px ${PURPLE}60, 0 0 40px ${PURPLE}30`
+            : `0 0 15px ${PURPLE}25, 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08)`,
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
+          padding: "0 16px",
+          gap: 14,
         }}
       >
-        <span style={{ fontSize: 16 }}>👤</span>
-        <span
+        {/* Developer avatar icon */}
+        <div
           style={{
-            fontFamily: interFontFamily,
-            fontSize: 12,
-            fontWeight: 700,
-            color: devInputActive ? "#ffffff" : "rgba(255, 255, 255, 0.7)",
-            letterSpacing: 0.4,
-            whiteSpace: "nowrap",
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            background: `linear-gradient(135deg, ${PURPLE}50, ${PURPLE}25)`,
+            border: `1px solid ${PURPLE}70`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
           }}
         >
-          Developer Input
-        </span>
+          <svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+            {/* Person */}
+            <circle cx={9} cy={7} r={3} stroke="white" strokeWidth={1.6} />
+            <path d="M3 19c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="white" strokeWidth={1.6} strokeLinecap="round" />
+            {/* Plus / collaboration */}
+            <line x1={19} y1={8} x2={19} y2={16} stroke={PURPLE} strokeWidth={2} strokeLinecap="round" />
+            <line x1={15} y1={12} x2={23} y2={12} stroke={PURPLE} strokeWidth={2} strokeLinecap="round" />
+          </svg>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <span
+            style={{
+              fontFamily: interFontFamily,
+              fontSize: 14,
+              fontWeight: 700,
+              color: "rgba(255, 255, 255, 0.9)",
+              letterSpacing: 0.3,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Developer Collaboration
+          </span>
+          <span
+            style={{
+              fontFamily: interFontFamily,
+              fontSize: 11,
+              fontWeight: 400,
+              color: "rgba(180, 160, 220, 0.9)",
+              letterSpacing: 0.5,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Issue Creation & Requirements
+          </span>
+        </div>
       </div>
 
       {/* Arrow from Developer Input to ring */}
@@ -476,15 +534,135 @@ export const AgentInAction: React.FC = () => {
             <polygon points="0 0, 10 3.5, 0 7" fill={`${PURPLE}80`} />
           </marker>
         </defs>
-        {/* Curved arrow from dev input node to the ring */}
+        {/* Curved arrow from dev collaboration card to the ring */}
         <path
-          d={`M ${DEV_INPUT_X + 80} ${DEV_INPUT_Y} Q ${DEV_INPUT_X + 200} ${DEV_INPUT_Y + 60} ${ringX(0) - 60} ${ringY(0) - 10}`}
+          d={`M ${DEV_INPUT_X + 130} ${DEV_INPUT_Y} Q ${DEV_INPUT_X + 240} ${DEV_INPUT_Y + 60} ${ringX(0) - 60} ${ringY(0) - 10}`}
           fill="none"
           stroke={`${PURPLE}60`}
           strokeWidth={2}
           strokeDasharray="6 4"
           markerEnd="url(#arrowhead)"
           opacity={devInputEntrance * 0.7}
+        />
+      </svg>
+
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* DEVELOPER PR REVIEW — outside ring, top-right end card             */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      <div
+        style={{
+          position: "absolute",
+          left: DEV_REVIEW_X - 130,
+          top: DEV_REVIEW_Y - 36,
+          width: 260,
+          height: 72,
+          opacity: devReviewEntrance,
+          transform: `scale(${devReviewEntrance * (devReviewActive ? 1.05 : 1)})`,
+          transformOrigin: "center center",
+          borderRadius: 16,
+          border: `1.5px solid ${devReviewActive ? `${INDIGO}90` : `${INDIGO}80`}`,
+          background: devReviewActive
+            ? `linear-gradient(145deg, ${INDIGO}35, rgba(20, 16, 30, 0.95) 70%)`
+            : `linear-gradient(145deg, ${INDIGO}30, rgba(20, 16, 30, 0.95) 70%)`,
+          boxShadow: devReviewActive
+            ? `0 0 25px ${INDIGO}60, 0 0 50px ${INDIGO}30, 0 4px 20px rgba(0, 0, 0, 0.4)`
+            : `0 0 15px ${INDIGO}25, 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08)`,
+          display: "flex",
+          alignItems: "center",
+          padding: "0 16px",
+          gap: 14,
+        }}
+      >
+        {/* PR merge icon */}
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            background: devReviewActive
+              ? `linear-gradient(135deg, ${INDIGO}50, #10B98140)`
+              : `linear-gradient(135deg, ${INDIGO}50, ${INDIGO}25)`,
+            border: `1px solid ${devReviewActive ? `${INDIGO}80` : `${INDIGO}70`}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+            {/* Clean checkmark in circle */}
+            <circle cx={12} cy={12} r={9} stroke={devReviewActive ? "#10B981" : "white"} strokeWidth={1.6} />
+            <path d="M8 12.5l2.5 2.5 5.5-5.5" stroke={devReviewActive ? "#10B981" : INDIGO} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <span
+            style={{
+              fontFamily: interFontFamily,
+              fontSize: 14,
+              fontWeight: 700,
+              color: devReviewActive ? "#ffffff" : "rgba(255, 255, 255, 0.9)",
+              letterSpacing: 0.3,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Developer PR Review
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {devReviewActive && (
+              <div
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  background: "#10B981",
+                  boxShadow: "0 0 6px #10B98180",
+                }}
+              />
+            )}
+            <span
+              style={{
+                fontFamily: interFontFamily,
+                fontSize: 11,
+                fontWeight: 400,
+                color: devReviewActive ? "#10B981" : INDIGO,
+                letterSpacing: 0.5,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {devReviewActive ? "Ready to Review" : "Review & Approve"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Arrow from last ring node (Report & PR) to PR Review */}
+      <svg
+        width={1920}
+        height={1080}
+        style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
+        viewBox="0 0 1920 1080"
+      >
+        <defs>
+          <marker
+            id="arrowhead-review"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill={`${INDIGO}80`} />
+          </marker>
+        </defs>
+        <path
+          d={`M ${ringX(8) + 60} ${ringY(8) - 10} Q ${DEV_REVIEW_X - 240} ${DEV_REVIEW_Y + 60} ${DEV_REVIEW_X - 130} ${DEV_REVIEW_Y}`}
+          fill="none"
+          stroke={`${INDIGO}60`}
+          strokeWidth={2}
+          strokeDasharray="6 4"
+          markerEnd="url(#arrowhead-review)"
+          opacity={devReviewEntrance * 0.7}
         />
       </svg>
 
@@ -526,7 +704,7 @@ export const AgentInAction: React.FC = () => {
           r={RADIUS}
           fill="none"
           stroke={`rgba(123, 66, 188, 0.08)`}
-          strokeWidth={14}
+          strokeWidth={16}
           strokeDasharray={CIRCUMFERENCE}
           strokeDashoffset={CIRCUMFERENCE * (1 - ringDraw)}
           filter="url(#glow-ring)"
@@ -539,7 +717,7 @@ export const AgentInAction: React.FC = () => {
           r={RADIUS}
           fill="none"
           stroke={`rgba(123, 66, 188, 0.25)`}
-          strokeWidth={3}
+          strokeWidth={3.5}
           strokeDasharray={CIRCUMFERENCE}
           strokeDashoffset={CIRCUMFERENCE * (1 - ringDraw)}
         />
@@ -552,7 +730,7 @@ export const AgentInAction: React.FC = () => {
             r={RADIUS}
             fill="none"
             stroke="url(#arc-gradient)"
-            strokeWidth={5}
+            strokeWidth={6}
             strokeDasharray={`${arcLength} ${CIRCUMFERENCE - arcLength}`}
             strokeDashoffset={arcOffset}
             strokeLinecap="round"
@@ -585,7 +763,7 @@ export const AgentInAction: React.FC = () => {
         const y = ringY(i);
         const isActive = i === activeRingIdx;
         const isCelebrating = frame >= CELEBRATION_START && frame < CELEBRATION_END;
-        const nodeColor = i === 6 ? SKY : stage.phase === "plan" ? PURPLE : INDIGO;
+        const nodeColor = i === 7 ? SKY : stage.phase === "plan" ? PURPLE : INDIGO;
         const borderColor = isActive ? nodeColor : `rgba(123, 66, 188, 0.35)`;
         const glowStr = isActive
           ? `0 0 20px ${nodeColor}80, 0 0 40px ${nodeColor}40`
@@ -596,14 +774,15 @@ export const AgentInAction: React.FC = () => {
             key={i}
             style={{
               position: "absolute",
-              left: x - 70,
-              top: y - 18,
-              width: 140,
-              height: 36,
+              left: x - 90,
+              top: y - 20,
+              width: 180,
+              height: 41,
+              zIndex: 10,
               opacity: progress,
               transform: `scale(${progress * (isCelebrating ? celebPulse : isActive ? 1.08 : 1)})`,
               transformOrigin: "center center",
-              borderRadius: 18,
+              borderRadius: 21,
               border: `1.5px solid ${borderColor}`,
               background: isActive
                 ? `linear-gradient(135deg, ${nodeColor}30, rgba(15, 15, 20, 0.92))`
@@ -612,14 +791,14 @@ export const AgentInAction: React.FC = () => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 6,
+              gap: 7,
             }}
           >
-            <span style={{ fontSize: 14 }}>{stage.icon}</span>
+            <span style={{ fontSize: 16 }}>{stage.icon}</span>
             <span
               style={{
                 fontFamily: interFontFamily,
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 600,
                 color: isActive ? "#ffffff" : "rgba(255, 255, 255, 0.65)",
                 letterSpacing: 0.3,
@@ -638,10 +817,10 @@ export const AgentInAction: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          left: CX - 40,
-          top: CY - PREVIEW_H / 2 - 90,
-          width: 80,
-          height: 80,
+          left: CX - 46,
+          top: CY - PREVIEW_H / 2 - 100,
+          width: 92,
+          height: 92,
           opacity: aiScale,
           transform: `scale(${aiScale})`,
           transformOrigin: "center center",
@@ -649,8 +828,8 @@ export const AgentInAction: React.FC = () => {
       >
         <div
           style={{
-            width: 80,
-            height: 80,
+            width: 92,
+            height: 92,
             borderRadius: "50%",
             background: `linear-gradient(135deg, ${PURPLE}40, ${INDIGO}40)`,
             border: `2px solid ${PURPLE}80`,
@@ -658,7 +837,7 @@ export const AgentInAction: React.FC = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 36,
+            fontSize: 41,
           }}
         >
           🤖
@@ -695,14 +874,15 @@ export const AgentInAction: React.FC = () => {
             CLAMP,
           );
 
-          // Smooth zoom effect: scale from 1.0 to zoomTarget.scale
+          // Smooth zoom effect: scale from safeMinScale to zoomTarget.scale
           const clipProgress = interpolate(
             frame,
             [sched.startFrame, sched.endFrame],
             [0, 1],
             CLAMP,
           );
-          const zoomScale = interpolate(clipProgress, [0, 1], [1.0, clip.zoomTarget.scale], {
+          const minScale = safeMinScale(clip.zoomTarget.x, clip.zoomTarget.y);
+          const zoomScale = interpolate(clipProgress, [0, 1], [minScale, clip.zoomTarget.scale], {
             ...CLAMP,
             easing: Easing.inOut(Easing.cubic),
           });
@@ -712,19 +892,24 @@ export const AgentInAction: React.FC = () => {
           const zoomTranslateX = -zoomScale * (clip.zoomTarget.x - 0.5) * PREVIEW_W;
           const zoomTranslateY = -zoomScale * (clip.zoomTarget.y - 0.5) * PREVIEW_H;
 
-          if (frame < sched.startFrame - 5 || frame > sched.endFrame + 5) return null;
+          const sourceOffsetFrames = clip.sourceStartSeconds
+            ? Math.round((clip.sourceStartSeconds * FPS) / clip.playbackRate)
+            : 0;
+
+          if (frame < sched.startFrame - sourceOffsetFrames - 5 || frame > sched.endFrame + 5) return null;
 
           return (
             <Sequence
               key={i}
-              from={sched.startFrame}
-              durationInFrames={sched.endFrame - sched.startFrame}
+              from={sched.startFrame - sourceOffsetFrames}
+              durationInFrames={sched.endFrame - sched.startFrame + sourceOffsetFrames}
             >
               <div
                 style={{
                   position: "absolute",
                   inset: 0,
                   opacity: clipOpacity,
+                  backgroundColor: clip.bgColor,
                 }}
               >
                 <Video
@@ -760,11 +945,11 @@ export const AgentInAction: React.FC = () => {
               gap: 8,
             }}
           >
-            <span style={{ fontSize: 14 }}>{ALL_CLIPS[activeClipIdx].icon}</span>
+            <span style={{ fontSize: 16 }}>{ALL_CLIPS[activeClipIdx].icon}</span>
             <span
               style={{
                 fontFamily: interFontFamily,
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: 600,
                 color: "rgba(255, 255, 255, 0.9)",
                 letterSpacing: 0.3,
@@ -792,7 +977,7 @@ export const AgentInAction: React.FC = () => {
         <span
           style={{
             fontFamily: interFontFamily,
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: 700,
             color: PURPLE,
             letterSpacing: 6,
@@ -816,7 +1001,7 @@ export const AgentInAction: React.FC = () => {
         <span
           style={{
             fontFamily: interFontFamily,
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: 700,
             color: INDIGO,
             letterSpacing: 6,

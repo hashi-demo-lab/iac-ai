@@ -8,6 +8,7 @@ import { ConsumerWorkflows, CONSUMER_DURATION_SECONDS } from "./ConsumerWorkflow
 import { WorkflowOverview, WORKFLOW_OVERVIEW_DURATION_SECONDS } from "./WorkflowOverview";
 import { NeedForEvolution } from "./NeedForEvolution";
 import { AgentInAction, AGENT_IN_ACTION_DURATION_SECONDS } from "./AgentInAction";
+import { LighthouseCTA, LIGHTHOUSE_CTA_DURATION_SECONDS } from "./LighthouseCTA";
 
 const TITLE_DURATION = 22;
 const VALUE_CARDS_DURATION = 12;
@@ -15,6 +16,7 @@ const EVOLUTION_DURATION = 14;
 const CONSUMER_DURATION = CONSUMER_DURATION_SECONDS;
 const WORKFLOW_OVERVIEW_DURATION = WORKFLOW_OVERVIEW_DURATION_SECONDS;
 const AGENT_IN_ACTION_DURATION = AGENT_IN_ACTION_DURATION_SECONDS;
+const LIGHTHOUSE_CTA_DURATION = LIGHTHOUSE_CTA_DURATION_SECONDS;
 const TRANSITION_FRAMES = 25;
 
 export const SkillDemo: React.FC = () => {
@@ -25,6 +27,7 @@ export const SkillDemo: React.FC = () => {
   const consumerFrames = CONSUMER_DURATION * fps;
   const workflowOverviewFrames = WORKFLOW_OVERVIEW_DURATION * fps;
   const agentInActionFrames = AGENT_IN_ACTION_DURATION * fps;
+  const lighthouseCtaFrames = LIGHTHOUSE_CTA_DURATION * fps;
   const timing = linearTiming({ durationInFrames: TRANSITION_FRAMES });
   const presentation = fade();
 
@@ -100,6 +103,17 @@ export const SkillDemo: React.FC = () => {
         <TransitionSeries.Sequence durationInFrames={agentInActionFrames}>
           <AgentInAction />
         </TransitionSeries.Sequence>
+
+        {/* Fade transition into Lighthouse CTA */}
+        <TransitionSeries.Transition
+          timing={timing}
+          presentation={presentation}
+        />
+
+        {/* Lighthouse CTA — final call to action */}
+        <TransitionSeries.Sequence durationInFrames={lighthouseCtaFrames}>
+          <LighthouseCTA />
+        </TransitionSeries.Sequence>
       </TransitionSeries>
     </AbsoluteFill>
   );
@@ -113,7 +127,8 @@ export const getSkillDemoDuration = (fps: number) => {
   const consumerFrames = CONSUMER_DURATION * fps;
   const workflowOverviewFrames = WORKFLOW_OVERVIEW_DURATION * fps;
   const agentInActionFrames = AGENT_IN_ACTION_DURATION * fps;
-  const transitionCount = 5; // title→evolution, evolution→valueCards, valueCards→consumer, consumer→workflowOverview, workflowOverview→agentInAction
+  const lighthouseCtaFrames = LIGHTHOUSE_CTA_DURATION * fps;
+  const transitionCount = 6; // title→evolution, evolution→valueCards, valueCards→consumer, consumer→workflowOverview, workflowOverview→agentInAction, agentInAction→lighthouseCta
   const transitionOverlap = transitionCount * TRANSITION_FRAMES;
-  return titleFrames + evolutionFrames + valueCardsFrames + consumerFrames + workflowOverviewFrames + agentInActionFrames - transitionOverlap;
+  return titleFrames + evolutionFrames + valueCardsFrames + consumerFrames + workflowOverviewFrames + agentInActionFrames + lighthouseCtaFrames - transitionOverlap;
 };
