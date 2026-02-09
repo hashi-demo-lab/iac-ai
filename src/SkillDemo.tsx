@@ -1,89 +1,39 @@
 import { AbsoluteFill, Sequence, interpolate, useVideoConfig, staticFile } from "remotion";
-import { Audio, Video } from "@remotion/media";
+import { Audio } from "@remotion/media";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { TitleCard } from "./TitleCard";
 import { ValueCards } from "./ValueCards";
 import { ConsumerWorkflows, CONSUMER_DURATION_SECONDS } from "./ConsumerWorkflows";
 import { WorkflowOverview, WORKFLOW_OVERVIEW_DURATION_SECONDS } from "./WorkflowOverview";
-import { ImplementWorkflows, IMPLEMENT_DURATION_SECONDS } from "./ImplementWorkflows";
-import { ClipLabel } from "./ClipLabel";
 import { NeedForEvolution } from "./NeedForEvolution";
+import { AgentInAction, AGENT_IN_ACTION_DURATION_SECONDS } from "./AgentInAction";
 
 const TITLE_DURATION = 22;
 const VALUE_CARDS_DURATION = 12;
 const EVOLUTION_DURATION = 14;
 const CONSUMER_DURATION = CONSUMER_DURATION_SECONDS;
 const WORKFLOW_OVERVIEW_DURATION = WORKFLOW_OVERVIEW_DURATION_SECONDS;
-const IMPLEMENT_DURATION = IMPLEMENT_DURATION_SECONDS;
+const AGENT_IN_ACTION_DURATION = AGENT_IN_ACTION_DURATION_SECONDS;
 const TRANSITION_FRAMES = 25;
-
-const clips = [
-  { start: 56, duration: 127, label: "Collaborative requirements gathering", phase: 1 },
-  { start: 316, duration: 112, label: "Task tracking GitHub Issues", phase: 2 },
-  { start: 948, duration: 115, label: "Research and analysis", phase: 3 },
-  { start: 1136, duration: 59, label: "Specification outputs", phase: 4 },
-];
-
-const applyClips = [
-  { start: 0, duration: 129, label: "Start implementation", phase: 1 },
-  { start: 361, duration: 144, label: "Task implementation", phase: 2 },
-  { start: 636, duration: 120, label: "Code review", phase: 3 },
-  { start: 1051, duration: 130, label: "Deploy HCP Terraform", phase: 4 },
-  { start: 1675, duration: 125, label: "Review implementation report", phase: 5 },
-];
-
-// Fade through black — outgoing fades out, brief black, incoming fades in
-const fadeThroughBlack = () => ({
-  component: ({
-    children,
-    presentationDirection,
-    presentationProgress,
-  }: {
-    children: React.ReactNode;
-    presentationDirection: "entering" | "exiting";
-    presentationProgress: number;
-  }) => {
-    const opacity =
-      presentationDirection === "entering"
-        ? interpolate(presentationProgress, [0.6, 1], [0, 1], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-          })
-        : interpolate(presentationProgress, [0, 0.4], [1, 0], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-          });
-
-    return (
-      <AbsoluteFill style={{ opacity }}>
-        {children}
-      </AbsoluteFill>
-    );
-  },
-});
 
 export const SkillDemo: React.FC = () => {
   const { fps } = useVideoConfig();
-  const src = staticFile("tf-plan-demo.mp4");
-  const applySrc = staticFile("tf-apply skill demo.mp4");
-
   const titleFrames = TITLE_DURATION * fps;
   const evolutionFrames = EVOLUTION_DURATION * fps;
   const valueCardsFrames = VALUE_CARDS_DURATION * fps;
   const consumerFrames = CONSUMER_DURATION * fps;
   const workflowOverviewFrames = WORKFLOW_OVERVIEW_DURATION * fps;
-  const implementFrames = IMPLEMENT_DURATION * fps;
+  const agentInActionFrames = AGENT_IN_ACTION_DURATION * fps;
   const timing = linearTiming({ durationInFrames: TRANSITION_FRAMES });
   const presentation = fade();
-  const videoPresentation = fadeThroughBlack();
 
-  // Audio spans 85 seconds (fade out from 77s baked into file)
-  const audioDuration = Math.round(85 * fps);
+  // Audio spans 209s (crossfade-looped, fade out from 199s baked into file)
+  const audioDuration = Math.round(209 * fps);
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
-      {/* Music: 122.13s with fade baked into file, fade out from 105s */}
+      {/* Music: 209s with crossfade loop, fade out from 199s baked into file */}
       <Sequence from={0} durationInFrames={audioDuration}>
         <Audio src={staticFile("intro-music.mp3")} volume={(f) =>
           interpolate(f, [0, 5], [0, 0.8], { extrapolateRight: "clamp" })
@@ -140,90 +90,30 @@ export const SkillDemo: React.FC = () => {
           <WorkflowOverview />
         </TransitionSeries.Sequence>
 
-        {clips.map((clip, i) => {
-          const clipFrames = clip.duration * fps;
-          return [
-            <TransitionSeries.Transition
-              key={`t-${i}`}
-              timing={timing}
-              presentation={videoPresentation}
-            />,
-            <TransitionSeries.Sequence
-              key={`c-${i}`}
-              durationInFrames={clipFrames}
-            >
-              <Video
-                src={src}
-                trimBefore={clip.start * fps}
-                trimAfter={(clip.start + clip.duration) * fps}
-                style={{ width: "100%", height: "100%" }}
-                volume={(f) => {
-                  const vIn = interpolate(f, [0, fps], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-                  const vOut = interpolate(f, [clipFrames - fps, clipFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-                  return Math.min(vIn, vOut);
-                }}
-              />
-              <ClipLabel label={clip.label} phase={clip.phase} />
-            </TransitionSeries.Sequence>,
-          ];
-        })}
-
-        {/* Fade through black into Implement Workflows intro */}
+        {/* Fade transition into Agent in Action */}
         <TransitionSeries.Transition
           timing={timing}
-          presentation={videoPresentation}
+          presentation={presentation}
         />
 
-        {/* Application Team Implement Workflows (Consumer) */}
-        <TransitionSeries.Sequence durationInFrames={implementFrames}>
-          <ImplementWorkflows />
+        {/* Agent in Action — orbital ring with video previews */}
+        <TransitionSeries.Sequence durationInFrames={agentInActionFrames}>
+          <AgentInAction />
         </TransitionSeries.Sequence>
-
-        {applyClips.map((clip, i) => {
-          const clipFrames = clip.duration * fps;
-          return [
-            <TransitionSeries.Transition
-              key={`at-${i}`}
-              timing={timing}
-              presentation={videoPresentation}
-            />,
-            <TransitionSeries.Sequence
-              key={`ac-${i}`}
-              durationInFrames={clipFrames}
-            >
-              <Video
-                src={applySrc}
-                trimBefore={clip.start * fps}
-                trimAfter={(clip.start + clip.duration) * fps}
-                style={{ width: "100%", height: "100%" }}
-                volume={(f) => {
-                  const vIn = interpolate(f, [0, fps], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-                  const vOut = interpolate(f, [clipFrames - fps, clipFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-                  return Math.min(vIn, vOut);
-                }}
-              />
-              <ClipLabel label={clip.label} phase={clip.phase} />
-            </TransitionSeries.Sequence>,
-          ];
-        })}
       </TransitionSeries>
     </AbsoluteFill>
   );
 };
 
-// Total: title + evolution + valueCards + consumer + workflowOverview + planClips + implement + applyClips - transition overlaps
+// Total: title + evolution + valueCards + consumer + workflowOverview + agentInAction - transition overlaps
 export const getSkillDemoDuration = (fps: number) => {
   const titleFrames = TITLE_DURATION * fps;
   const evolutionFrames = EVOLUTION_DURATION * fps;
   const valueCardsFrames = VALUE_CARDS_DURATION * fps;
   const consumerFrames = CONSUMER_DURATION * fps;
   const workflowOverviewFrames = WORKFLOW_OVERVIEW_DURATION * fps;
-  const implementFrames = IMPLEMENT_DURATION * fps;
-  const clipsFrames = clips.reduce((acc, clip) => acc + clip.duration * fps, 0);
-  const applyClipsFrames = applyClips.reduce((acc, clip) => acc + clip.duration * fps, 0);
-  // transitions: title→evolution, evolution→valueCards, valueCards→consumer,
-  // consumer→workflowOverview, workflowOverview→clip1..clip4, clip4→implement, implement→applyClip1..applyClip5
-  const transitionCount = 4 + clips.length + 1 + applyClips.length;
+  const agentInActionFrames = AGENT_IN_ACTION_DURATION * fps;
+  const transitionCount = 5; // title→evolution, evolution→valueCards, valueCards→consumer, consumer→workflowOverview, workflowOverview→agentInAction
   const transitionOverlap = transitionCount * TRANSITION_FRAMES;
-  return titleFrames + evolutionFrames + valueCardsFrames + consumerFrames + workflowOverviewFrames + implementFrames + clipsFrames + applyClipsFrames - transitionOverlap;
+  return titleFrames + evolutionFrames + valueCardsFrames + consumerFrames + workflowOverviewFrames + agentInActionFrames - transitionOverlap;
 };

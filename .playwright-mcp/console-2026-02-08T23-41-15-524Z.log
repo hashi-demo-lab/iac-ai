@@ -1,0 +1,1 @@
+[ 1799090ms] [ERROR] A VideoSample was garbage collected without first being closed. For proper resource management, make sure to call close() on all your VideoSamples as soon as you're done using them. @ http://localhost:3002/bundle.js:34985

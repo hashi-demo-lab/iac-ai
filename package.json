@@ -8,6 +8,7 @@
   "dependencies": {
     "@remotion/cli": "4.0.417",
     "@remotion/google-fonts": "4.0.417",
+    "@remotion/install-whisper-cpp": "4.0.417",
     "@remotion/light-leaks": "4.0.417",
     "@remotion/media": "4.0.417",
     "@remotion/tailwind-v4": "4.0.417",
