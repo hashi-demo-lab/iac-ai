@@ -9,10 +9,16 @@ import {
 import { Audio, Video } from "@remotion/media";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { loadFont } from "@remotion/google-fonts/Inter";
+import { loadFont as loadMonoFont } from "@remotion/google-fonts/GeistMono";
 
 const { fontFamily } = loadFont("normal", {
   subsets: ["latin"],
   weights: ["400", "700"],
+});
+
+const { fontFamily: monoFont } = loadMonoFont("normal", {
+  subsets: ["latin"],
+  weights: ["400", "600"],
 });
 
 const TRANSITION_FRAMES = 25;
@@ -35,43 +41,45 @@ interface ClipPause {
 interface Clip {
   start: number; // seconds into source video
   duration: number; // seconds
+  title?: string;
   note?: ClipNote;
   pause?: ClipPause;
 }
 
 const planClips: Clip[] = [
   { start: 0, duration: 13.5 },
-  { start: 56, duration: 50.8 },
+  { start: 56, duration: 50.8, title: "Introducing tf-plan" },
   {
     start: 263,
     duration: 37.5,
+    title: "Subagent: sdd-specify",
     pause: {
-      text: '*I meant "Spec-Driven Development"',
+      text: "*SDD = Spec-Driven Development",
       at: 16.5,
-      holdDuration: 3,
+      holdDuration: 2,
     },
   },
-  { start: 442, duration: 79 },
-  { start: 314, duration: 23 },
-  { start: 638, duration: 52.5 },
-  { start: 690, duration: 68 },
+  { start: 442, duration: 79, title: "Generating the spec.md" },
+  { start: 314, duration: 23, title: "GitHub Issue Tracking" },
+  { start: 638, duration: 52.5, title: "Subagents: sdd-checklist & sdd-clarify" },
+  { start: 690, duration: 68, title: "Subagent: sdd-research" },
   { start: 1031.5, duration: 53 },
-  { start: 758, duration: 58 },
-  { start: 954, duration: 78 },
-  { start: 1132, duration: 56 },
+  { start: 758, duration: 58, title: "Subagent: sdd-plan-draft" },
+  { start: 954, duration: 78, title: "Subagents: sdd-task & sdd-analyse" },
+  { start: 1132, duration: 56, title: "tf-plan Summary" },
 ];
 
 const applyClips: Clip[] = [
-  { start: 0, duration: 68 },
-  { start: 139, duration: 220 },
-  { start: 401, duration: 98 },
-  { start: 538.5, duration: 29.5 },
-  { start: 722, duration: 109 },
-  { start: 1094, duration: 173 },
-  { start: 1268, duration: 109.3 },
-  { start: 1399, duration: 33 },
-  { start: 1478, duration: 148.5 },
-  { start: 1640, duration: 96.5 },
+  { start: 0, duration: 68, title: "Introducing tf-implement" },
+  { start: 139, duration: 220, title: "Subagent: tf-task-executor" },
+  { start: 401, duration: 98, title: "Enforcing Compliance & Security" },
+  { start: 538.5, duration: 29.5, title: "Generated Terraform Code" },
+  { start: 722, duration: 109, title: "Subagent: Security Review" },
+  { start: 1094, duration: 173, title: "Deploying to HCP Terraform" },
+  { start: 1268, duration: 109.3, title: "Automatic Issue Remediation" },
+  { start: 1399, duration: 33, title: "Testing the Static Site" },
+  { start: 1478, duration: 148.5, title: "Enterprise Workflow Enforcement" },
+  { start: 1640, duration: 96.5, title: "Subagent: tf-report-generator" },
   { start: 1884, duration: 74 },
 ];
 
@@ -261,28 +269,119 @@ const PauseOverlay: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
-// ── Clip number label (bottom-left, preview only) ───────────────────────────
+// ── Clip title with typewriter animation ─────────────────────────────────────
 
-const ClipNumberLabel: React.FC<{ label: string }> = ({ label }) => (
-  <AbsoluteFill>
-    <div
-      style={{
-        position: "absolute",
-        bottom: 20,
-        left: 20,
-        fontFamily,
-        fontSize: 18,
-        fontWeight: 700,
-        color: "#fff",
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
-        padding: "4px 10px",
-        borderRadius: 4,
-      }}
-    >
-      {label}
-    </div>
-  </AbsoluteFill>
-);
+const TYPEWRITER_FRAMES_PER_CHAR = 2;
+const TYPEWRITER_HOLD_SECONDS = 3;
+const TYPEWRITER_FADE_SECONDS = 0.5;
+const TYPEWRITER_START_DELAY = 10; // frames before typing begins
+
+const bannerStyle: React.CSSProperties = {
+  position: "absolute",
+  bottom: 36,
+  left: 0,
+  display: "flex",
+  alignItems: "center",
+  fontFamily: monoFont,
+  fontSize: 32,
+  fontWeight: 600,
+  color: "#fff",
+  letterSpacing: 0.5,
+  backgroundColor: "rgba(10, 10, 10, 0.72)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  padding: "14px 28px 14px 0",
+  borderRadius: "0 8px 8px 0",
+};
+
+const accentBarStyle: React.CSSProperties = {
+  width: 4,
+  alignSelf: "stretch",
+  backgroundColor: "#7B42BC",
+  borderRadius: "0 2px 2px 0",
+  marginRight: 20,
+  boxShadow: "0 0 12px rgba(123, 66, 188, 0.5)",
+};
+
+const ClipTitle: React.FC<{ text: string }> = ({ text }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const typingFrames = text.length * TYPEWRITER_FRAMES_PER_CHAR;
+  const holdFrames = Math.round(TYPEWRITER_HOLD_SECONDS * fps);
+  const fadeFrames = Math.round(TYPEWRITER_FADE_SECONDS * fps);
+
+  const typingFrame = Math.max(0, frame - TYPEWRITER_START_DELAY);
+  const charsVisible = Math.min(
+    Math.floor(typingFrame / TYPEWRITER_FRAMES_PER_CHAR),
+    text.length
+  );
+
+  const isTyping = charsVisible < text.length && frame >= TYPEWRITER_START_DELAY;
+  const doneTypingAt = TYPEWRITER_START_DELAY + typingFrames;
+  const fadeOutStart = doneTypingAt + holdFrames;
+  const fadeOutEnd = fadeOutStart + fadeFrames;
+
+  if (frame > fadeOutEnd) return null;
+
+  // Slide in from left
+  const slideIn = interpolate(frame, [0, 8], [-60, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  if (frame < TYPEWRITER_START_DELAY && charsVisible === 0) {
+    const cursorOn = Math.floor(frame / 10) % 2 === 0;
+    return (
+      <AbsoluteFill>
+        <div
+          style={{
+            ...bannerStyle,
+            transform: `translateX(${slideIn}px)`,
+          }}
+        >
+          <div style={accentBarStyle} />
+          <span style={{ opacity: cursorOn ? 1 : 0, color: "#7B42BC" }}>
+            ▎
+          </span>
+        </div>
+      </AbsoluteFill>
+    );
+  }
+
+  const opacity =
+    frame >= fadeOutStart
+      ? interpolate(frame, [fadeOutStart, fadeOutEnd], [1, 0], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        })
+      : 1;
+
+  let showCursor = false;
+  if (isTyping) {
+    showCursor = true;
+  } else if (frame < doneTypingAt + Math.round(fps * 1)) {
+    showCursor = Math.floor(frame / 10) % 2 === 0;
+  }
+
+  return (
+    <AbsoluteFill>
+      <div
+        style={{
+          ...bannerStyle,
+          opacity,
+          transform: `translateX(${slideIn}px)`,
+        }}
+      >
+        <div style={accentBarStyle} />
+        {text.slice(0, charsVisible)}
+        <span style={{ opacity: showCursor ? 1 : 0, color: "#7B42BC" }}>
+          ▎
+        </span>
+      </div>
+    </AbsoluteFill>
+  );
+};
 
 // ── Helper: render a series of clips ────────────────────────────────────────
 
@@ -333,7 +432,7 @@ const renderClips = (
               })
             }
           />
-          <ClipNumberLabel label={`${keyPrefix} #${i + 1}`} />
+          {clip.title && <ClipTitle text={clip.title} />}
         </TransitionSeries.Sequence>,
         // Freeze: frozen frame + ping + text overlay (hard cut in & out)
         <TransitionSeries.Sequence
@@ -349,7 +448,7 @@ const renderClips = (
               volume={0}
             />
           </Freeze>
-          <Audio src={staticFile("ping.wav")} volume={0.8} />
+          <Audio src={staticFile("bell.wav")} volume={0.8} />
           <PauseOverlay text={clip.pause.text} />
         </TransitionSeries.Sequence>,
         // Post-pause: video resumes, no fade in, fades out at end
@@ -369,7 +468,6 @@ const renderClips = (
               })
             }
           />
-          <ClipNumberLabel label={`${keyPrefix} #${i + 1}`} />
         </TransitionSeries.Sequence>,
       ];
     }
@@ -412,7 +510,7 @@ const renderClips = (
             showForSeconds={clip.note.showFor}
           />
         )}
-        <ClipNumberLabel label={`${keyPrefix} #${i + 1}`} />
+        {clip.title && <ClipTitle text={clip.title} />}
       </TransitionSeries.Sequence>,
     ];
   });
