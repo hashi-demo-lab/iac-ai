@@ -1,40 +1,83 @@
-import { AbsoluteFill, Sequence, interpolate, useVideoConfig, staticFile } from "remotion";
+import {
+  AbsoluteFill,
+  Freeze,
+  interpolate,
+  useCurrentFrame,
+  useVideoConfig,
+  staticFile,
+} from "remotion";
 import { Audio, Video } from "@remotion/media";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
-import { fade } from "@remotion/transitions/fade";
-import { TitleCard } from "./TitleCard";
-import { ValueCards } from "./ValueCards";
-import { ConsumerWorkflows, CONSUMER_DURATION_SECONDS } from "./ConsumerWorkflows";
-import { WorkflowOverview, WORKFLOW_OVERVIEW_DURATION_SECONDS } from "./WorkflowOverview";
-import { ImplementWorkflows, IMPLEMENT_DURATION_SECONDS } from "./ImplementWorkflows";
-import { ClipLabel } from "./ClipLabel";
-import { NeedForEvolution } from "./NeedForEvolution";
+import { loadFont } from "@remotion/google-fonts/Inter";
 
-const TITLE_DURATION = 22;
-const VALUE_CARDS_DURATION = 12;
-const EVOLUTION_DURATION = 14;
-const CONSUMER_DURATION = CONSUMER_DURATION_SECONDS;
-const WORKFLOW_OVERVIEW_DURATION = WORKFLOW_OVERVIEW_DURATION_SECONDS;
-const IMPLEMENT_DURATION = IMPLEMENT_DURATION_SECONDS;
+const { fontFamily } = loadFont("normal", {
+  subsets: ["latin"],
+  weights: ["400", "700"],
+});
+
 const TRANSITION_FRAMES = 25;
+const SECTION_TITLE_DURATION = 3; // seconds
 
-const clips = [
-  { start: 56, duration: 127, label: "Collaborative requirements gathering", phase: 1 },
-  { start: 316, duration: 112, label: "Task tracking GitHub Issues", phase: 2 },
-  { start: 948, duration: 115, label: "Research and analysis", phase: 3 },
-  { start: 1136, duration: 59, label: "Specification outputs", phase: 4 },
+// ── Clip definitions ────────────────────────────────────────────────────────
+
+interface ClipNote {
+  text: string;
+  appearAt: number; // seconds into the clip
+  showFor: number; // seconds
+}
+
+interface ClipPause {
+  text: string;
+  at: number; // seconds into the clip where the video freezes
+  holdDuration: number; // seconds the freeze lasts
+}
+
+interface Clip {
+  start: number; // seconds into source video
+  duration: number; // seconds
+  note?: ClipNote;
+  pause?: ClipPause;
+}
+
+const planClips: Clip[] = [
+  { start: 0, duration: 13.5 },
+  { start: 56, duration: 50.5 },
+  {
+    start: 263,
+    duration: 37,
+    pause: {
+      text: '*I meant "Spec-Driven Development"',
+      at: 16.5,
+      holdDuration: 3,
+    },
+  },
+  { start: 314, duration: 22.5 },
+  { start: 442, duration: 78.5 },
+  { start: 638, duration: 52.5 },
+  { start: 690, duration: 67.5 },
+  { start: 758, duration: 57.5 },
+  { start: 958, duration: 73.5 },
+  { start: 1132, duration: 55.5 },
 ];
 
-const applyClips = [
-  { start: 0, duration: 129, label: "Start implementation", phase: 1 },
-  { start: 361, duration: 144, label: "Task implementation", phase: 2 },
-  { start: 636, duration: 120, label: "Code review", phase: 3 },
-  { start: 1051, duration: 130, label: "Deploy HCP Terraform", phase: 4 },
-  { start: 1675, duration: 125, label: "Review implementation report", phase: 5 },
+const applyClips: Clip[] = [
+  { start: 0, duration: 67.5 },
+  { start: 139, duration: 219.5 },
+  { start: 401, duration: 97.5 },
+  { start: 538.5, duration: 29 },
+  { start: 722, duration: 108.5 },
+  { start: 1094, duration: 172.5 },
+  { start: 1268, duration: 101.5 },
+  { start: 1399, duration: 32.5 },
+  { start: 1478, duration: 148 },
+  { start: 1640, duration: 96 },
+  { start: 1884, duration: 73.5 },
 ];
 
-// Fade through black — outgoing fades out, brief black, incoming fades in
+// ── Fade through black transition ───────────────────────────────────────────
+
 const fadeThroughBlack = () => ({
+  props: {},
   component: ({
     children,
     presentationDirection,
@@ -55,175 +98,362 @@ const fadeThroughBlack = () => ({
             extrapolateRight: "clamp",
           });
 
-    return (
-      <AbsoluteFill style={{ opacity }}>
-        {children}
-      </AbsoluteFill>
-    );
+    return <AbsoluteFill style={{ opacity }}>{children}</AbsoluteFill>;
   },
 });
 
+// ── Section title card ──────────────────────────────────────────────────────
+
+const SectionTitle: React.FC<{ title: string; subtitle?: string }> = ({
+  title,
+  subtitle,
+}) => {
+  const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
+
+  const fadeIn = interpolate(frame, [0, 0.5 * fps], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+  const fadeOut = interpolate(
+    frame,
+    [durationInFrames - 0.5 * fps, durationInFrames],
+    [1, 0],
+    { extrapolateLeft: "clamp" }
+  );
+  const opacity = Math.min(fadeIn, fadeOut);
+
+  return (
+    <AbsoluteFill
+      style={{
+        backgroundColor: "#0a0a0a",
+        justifyContent: "center",
+        alignItems: "center",
+        opacity,
+      }}
+    >
+      <div
+        style={{
+          fontFamily,
+          fontSize: 72,
+          fontWeight: 700,
+          color: "#ffffff",
+          letterSpacing: 2,
+          textTransform: "uppercase",
+        }}
+      >
+        {title}
+      </div>
+      {subtitle && (
+        <div
+          style={{
+            fontFamily,
+            fontSize: 32,
+            fontWeight: 400,
+            color: "#7B42BC",
+            marginTop: 16,
+          }}
+        >
+          {subtitle}
+        </div>
+      )}
+    </AbsoluteFill>
+  );
+};
+
+// ── Correction note pop-up ──────────────────────────────────────────────────
+
+const CorrectionNote: React.FC<{
+  text: string;
+  appearAtSeconds: number;
+  showForSeconds: number;
+}> = ({ text, appearAtSeconds, showForSeconds }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const startFrame = Math.round(appearAtSeconds * fps);
+  const endFrame = startFrame + Math.round(showForSeconds * fps);
+
+  if (frame < startFrame || frame > endFrame) return null;
+
+  const fadeIn = interpolate(frame, [startFrame, startFrame + 15], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const fadeOut = interpolate(frame, [endFrame - 15, endFrame], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const opacity = Math.min(fadeIn, fadeOut);
+  const slideUp = interpolate(frame, [startFrame, startFrame + 15], [20, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  return (
+    <AbsoluteFill>
+      <div
+        style={{
+          position: "absolute",
+          bottom: 120,
+          right: 60,
+          opacity,
+          transform: `translateY(${slideUp}px)`,
+          fontFamily,
+          fontSize: 28,
+          fontWeight: 500,
+          color: "#ffffff",
+          backgroundColor: "rgba(123, 66, 188, 0.85)",
+          padding: "14px 24px",
+          borderRadius: 8,
+          borderLeft: "4px solid #F59E0B",
+        }}
+      >
+        {text}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ── Pause overlay (centered at bottom) ──────────────────────────────────────
+
+const PauseOverlay: React.FC<{ text: string }> = ({ text }) => {
+  const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+
+  const fadeIn = interpolate(frame, [0, 10], [0, 1], {
+    extrapolateRight: "clamp",
+  });
+  const fadeOut = interpolate(
+    frame,
+    [durationInFrames - 10, durationInFrames],
+    [1, 0],
+    { extrapolateLeft: "clamp" }
+  );
+  const opacity = Math.min(fadeIn, fadeOut);
+  const slideUp = interpolate(frame, [0, 10], [20, 0], {
+    extrapolateRight: "clamp",
+  });
+
+  return (
+    <AbsoluteFill>
+      <div
+        style={{
+          position: "absolute",
+          bottom: 120,
+          left: "50%",
+          transform: `translateX(-50%) translateY(${slideUp}px)`,
+          opacity,
+          fontFamily,
+          fontSize: 28,
+          fontWeight: 500,
+          color: "#ffffff",
+          backgroundColor: "rgba(123, 66, 188, 0.85)",
+          padding: "14px 24px",
+          borderRadius: 8,
+          borderLeft: "4px solid #F59E0B",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {text}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ── Helper: render a series of clips ────────────────────────────────────────
+
+const renderClips = (
+  clips: Clip[],
+  src: string,
+  fps: number,
+  keyPrefix: string,
+  timing: ReturnType<typeof linearTiming>,
+  presentation: ReturnType<typeof fadeThroughBlack>
+) => {
+  return clips.flatMap((clip, i) => {
+    // ── Clip with pause: split into pre / freeze / post ──
+    if (clip.pause) {
+      const pauseAt = clip.pause.at;
+      const holdFrames = Math.round(clip.pause.holdDuration * fps);
+
+      const preFrames = Math.round(pauseAt * fps);
+      const preTrimBefore = Math.round(clip.start * fps);
+      const preTrimAfter = Math.round((clip.start + pauseAt) * fps);
+
+      const postDuration = clip.duration - pauseAt;
+      const postFrames = Math.round(postDuration * fps);
+      const postTrimBefore = preTrimAfter;
+      const postTrimAfter = Math.round((clip.start + clip.duration) * fps);
+
+      return [
+        // Transition from previous clip (normal)
+        <TransitionSeries.Transition
+          key={`${keyPrefix}-t-${i}`}
+          timing={timing}
+          presentation={presentation}
+        />,
+        // Pre-pause: video plays, fades in but cuts hard at end
+        <TransitionSeries.Sequence
+          key={`${keyPrefix}-c-${i}-pre`}
+          durationInFrames={preFrames}
+        >
+          <Video
+            src={src}
+
+            trimBefore={preTrimBefore}
+            trimAfter={preTrimAfter}
+            style={{ width: "100%", height: "100%" }}
+            volume={(f) =>
+              interpolate(f, [0, fps], [0, 1], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+              })
+            }
+          />
+        </TransitionSeries.Sequence>,
+        // Freeze: frozen frame + ping + text overlay (hard cut in & out)
+        <TransitionSeries.Sequence
+          key={`${keyPrefix}-c-${i}-pause`}
+          durationInFrames={holdFrames}
+        >
+          <Freeze frame={0}>
+            <Video
+              src={src}
+              trimBefore={preTrimAfter}
+              trimAfter={preTrimAfter + holdFrames}
+              style={{ width: "100%", height: "100%" }}
+              volume={0}
+            />
+          </Freeze>
+          <Audio src={staticFile("ping.wav")} volume={0.8} />
+          <PauseOverlay text={clip.pause.text} />
+        </TransitionSeries.Sequence>,
+        // Post-pause: video resumes, no fade in, fades out at end
+        <TransitionSeries.Sequence
+          key={`${keyPrefix}-c-${i}-post`}
+          durationInFrames={postFrames}
+        >
+          <Video
+            src={src}
+
+            trimBefore={postTrimBefore}
+            trimAfter={postTrimAfter}
+            style={{ width: "100%", height: "100%" }}
+            volume={(f) =>
+              interpolate(f, [postFrames - fps, postFrames], [1, 0], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+              })
+            }
+          />
+        </TransitionSeries.Sequence>,
+      ];
+    }
+
+    // ── Normal clip ──
+    const clipFrames = Math.round(clip.duration * fps);
+    return [
+      <TransitionSeries.Transition
+        key={`${keyPrefix}-t-${i}`}
+        timing={timing}
+        presentation={presentation}
+      />,
+      <TransitionSeries.Sequence
+        key={`${keyPrefix}-c-${i}`}
+        durationInFrames={clipFrames}
+      >
+        <Video
+          src={src}
+          trimBefore={Math.round(clip.start * fps)}
+          trimAfter={Math.round((clip.start + clip.duration) * fps)}
+          style={{ width: "100%", height: "100%" }}
+          volume={(f) => {
+            const vIn = interpolate(f, [0, fps], [0, 1], {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+            });
+            const vOut = interpolate(
+              f,
+              [clipFrames - fps, clipFrames],
+              [1, 0],
+              { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+            );
+            return Math.min(vIn, vOut);
+          }}
+        />
+        {clip.note && (
+          <CorrectionNote
+            text={clip.note.text}
+            appearAtSeconds={clip.note.appearAt}
+            showForSeconds={clip.note.showFor}
+          />
+        )}
+      </TransitionSeries.Sequence>,
+    ];
+  });
+};
+
+// ── Main composition ────────────────────────────────────────────────────────
+
 export const SkillDemo: React.FC = () => {
   const { fps } = useVideoConfig();
-  const src = staticFile("tf-plan-demo.mp4");
+  const planSrc = staticFile("tf-plan-demo.mp4");
   const applySrc = staticFile("tf-apply skill demo.mp4");
 
-  const titleFrames = TITLE_DURATION * fps;
-  const evolutionFrames = EVOLUTION_DURATION * fps;
-  const valueCardsFrames = VALUE_CARDS_DURATION * fps;
-  const consumerFrames = CONSUMER_DURATION * fps;
-  const workflowOverviewFrames = WORKFLOW_OVERVIEW_DURATION * fps;
-  const implementFrames = IMPLEMENT_DURATION * fps;
+  const sectionTitleFrames = SECTION_TITLE_DURATION * fps;
   const timing = linearTiming({ durationInFrames: TRANSITION_FRAMES });
-  const presentation = fade();
-  const videoPresentation = fadeThroughBlack();
-
-  // Audio spans 85 seconds (fade out from 77s baked into file)
-  const audioDuration = Math.round(85 * fps);
+  const presentation = fadeThroughBlack();
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
-      {/* Music: 122.13s with fade baked into file, fade out from 105s */}
-      <Sequence from={0} durationInFrames={audioDuration}>
-        <Audio src={staticFile("intro-music.mp3")} volume={(f) =>
-          interpolate(f, [0, 5], [0, 0.8], { extrapolateRight: "clamp" })
-        } />
-      </Sequence>
-
       <TransitionSeries>
-        {/* Title Card */}
-        <TransitionSeries.Sequence durationInFrames={titleFrames}>
-          <TitleCard />
+        {/* ── Plan Phase title ── */}
+        <TransitionSeries.Sequence durationInFrames={sectionTitleFrames}>
+          <SectionTitle title="Plan Phase" subtitle="tf-plan skill demo" />
         </TransitionSeries.Sequence>
 
-        {/* Fade transition into Need for Evolution */}
+        {/* ── Plan clips ── */}
+        {renderClips(planClips, planSrc, fps, "plan", timing, presentation)}
+
+        {/* ── Apply Phase title ── */}
         <TransitionSeries.Transition
           timing={timing}
           presentation={presentation}
         />
-
-        {/* Need for Evolution */}
-        <TransitionSeries.Sequence durationInFrames={evolutionFrames}>
-          <NeedForEvolution />
+        <TransitionSeries.Sequence durationInFrames={sectionTitleFrames}>
+          <SectionTitle title="Apply Phase" subtitle="tf-apply skill demo" />
         </TransitionSeries.Sequence>
 
-        {/* Fade transition into Value Cards */}
-        <TransitionSeries.Transition
-          timing={timing}
-          presentation={presentation}
-        />
-
-        {/* Value Proposition Cards */}
-        <TransitionSeries.Sequence durationInFrames={valueCardsFrames}>
-          <ValueCards />
-        </TransitionSeries.Sequence>
-
-        {/* Fade transition into Consumer Workflows */}
-        <TransitionSeries.Transition
-          timing={timing}
-          presentation={presentation}
-        />
-
-        {/* Application Team Consumer Workflows */}
-        <TransitionSeries.Sequence durationInFrames={consumerFrames}>
-          <ConsumerWorkflows />
-        </TransitionSeries.Sequence>
-
-        {/* Fade transition into Workflow Overview */}
-        <TransitionSeries.Transition
-          timing={timing}
-          presentation={presentation}
-        />
-
-        {/* Workflow Overview — pipeline build-out */}
-        <TransitionSeries.Sequence durationInFrames={workflowOverviewFrames}>
-          <WorkflowOverview />
-        </TransitionSeries.Sequence>
-
-        {clips.map((clip, i) => {
-          const clipFrames = clip.duration * fps;
-          return [
-            <TransitionSeries.Transition
-              key={`t-${i}`}
-              timing={timing}
-              presentation={videoPresentation}
-            />,
-            <TransitionSeries.Sequence
-              key={`c-${i}`}
-              durationInFrames={clipFrames}
-            >
-              <Video
-                src={src}
-                trimBefore={clip.start * fps}
-                trimAfter={(clip.start + clip.duration) * fps}
-                style={{ width: "100%", height: "100%" }}
-                volume={(f) => {
-                  const vIn = interpolate(f, [0, fps], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-                  const vOut = interpolate(f, [clipFrames - fps, clipFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-                  return Math.min(vIn, vOut);
-                }}
-              />
-              <ClipLabel label={clip.label} phase={clip.phase} />
-            </TransitionSeries.Sequence>,
-          ];
-        })}
-
-        {/* Fade through black into Implement Workflows intro */}
-        <TransitionSeries.Transition
-          timing={timing}
-          presentation={videoPresentation}
-        />
-
-        {/* Application Team Implement Workflows (Consumer) */}
-        <TransitionSeries.Sequence durationInFrames={implementFrames}>
-          <ImplementWorkflows />
-        </TransitionSeries.Sequence>
-
-        {applyClips.map((clip, i) => {
-          const clipFrames = clip.duration * fps;
-          return [
-            <TransitionSeries.Transition
-              key={`at-${i}`}
-              timing={timing}
-              presentation={videoPresentation}
-            />,
-            <TransitionSeries.Sequence
-              key={`ac-${i}`}
-              durationInFrames={clipFrames}
-            >
-              <Video
-                src={applySrc}
-                trimBefore={clip.start * fps}
-                trimAfter={(clip.start + clip.duration) * fps}
-                style={{ width: "100%", height: "100%" }}
-                volume={(f) => {
-                  const vIn = interpolate(f, [0, fps], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-                  const vOut = interpolate(f, [clipFrames - fps, clipFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-                  return Math.min(vIn, vOut);
-                }}
-              />
-              <ClipLabel label={clip.label} phase={clip.phase} />
-            </TransitionSeries.Sequence>,
-          ];
-        })}
+        {/* ── Apply clips ── */}
+        {renderClips(applyClips, applySrc, fps, "apply", timing, presentation)}
       </TransitionSeries>
     </AbsoluteFill>
   );
 };
 
-// Total: title + evolution + valueCards + consumer + workflowOverview + planClips + implement + applyClips - transition overlaps
+// ── Duration calculator ─────────────────────────────────────────────────────
+
 export const getSkillDemoDuration = (fps: number) => {
-  const titleFrames = TITLE_DURATION * fps;
-  const evolutionFrames = EVOLUTION_DURATION * fps;
-  const valueCardsFrames = VALUE_CARDS_DURATION * fps;
-  const consumerFrames = CONSUMER_DURATION * fps;
-  const workflowOverviewFrames = WORKFLOW_OVERVIEW_DURATION * fps;
-  const implementFrames = IMPLEMENT_DURATION * fps;
-  const clipsFrames = clips.reduce((acc, clip) => acc + clip.duration * fps, 0);
-  const applyClipsFrames = applyClips.reduce((acc, clip) => acc + clip.duration * fps, 0);
-  // transitions: title→evolution, evolution→valueCards, valueCards→consumer,
-  // consumer→workflowOverview, workflowOverview→clip1..clip4, clip4→implement, implement→applyClip1..applyClip5
-  const transitionCount = 4 + clips.length + 1 + applyClips.length;
+  const sectionTitleFrames = 2 * SECTION_TITLE_DURATION * fps; // 2 title cards
+  const planFrames = planClips.reduce(
+    (acc, clip) => acc + Math.round(clip.duration * fps),
+    0
+  );
+  const applyFrames = applyClips.reduce(
+    (acc, clip) => acc + Math.round(clip.duration * fps),
+    0
+  );
+  // Extra frames added by pause sequences
+  const pauseFrames = [...planClips, ...applyClips].reduce(
+    (acc, clip) =>
+      acc + (clip.pause ? Math.round(clip.pause.holdDuration * fps) : 0),
+    0
+  );
+  // Transitions: planTitle→clip1, between plan clips (9), lastPlan→applyTitle,
+  // applyTitle→clip1, between apply clips (10)
+  const transitionCount =
+    planClips.length + 1 + applyClips.length;
   const transitionOverlap = transitionCount * TRANSITION_FRAMES;
-  return titleFrames + evolutionFrames + valueCardsFrames + consumerFrames + workflowOverviewFrames + implementFrames + clipsFrames + applyClipsFrames - transitionOverlap;
+
+  return sectionTitleFrames + planFrames + applyFrames + pauseFrames - transitionOverlap;
 };
