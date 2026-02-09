@@ -41,37 +41,38 @@ interface Clip {
 
 const planClips: Clip[] = [
   { start: 0, duration: 13.5 },
-  { start: 56, duration: 50.5 },
+  { start: 56, duration: 50.8 },
   {
     start: 263,
-    duration: 37,
+    duration: 37.5,
     pause: {
       text: '*I meant "Spec-Driven Development"',
       at: 16.5,
       holdDuration: 3,
     },
   },
-  { start: 314, duration: 22.5 },
-  { start: 442, duration: 78.5 },
-  { start: 638, duration: 52.5 },
-  { start: 690, duration: 67.5 },
-  { start: 758, duration: 57.5 },
-  { start: 958, duration: 73.5 },
-  { start: 1132, duration: 55.5 },
+  { start: 314, duration: 23 },
+  { start: 442, duration: 79 },
+  { start: 638, duration: 53 },
+  { start: 690, duration: 68 },
+  { start: 1031.5, duration: 53 },
+  { start: 758, duration: 58 },
+  { start: 958, duration: 74 },
+  { start: 1132, duration: 56 },
 ];
 
 const applyClips: Clip[] = [
-  { start: 0, duration: 67.5 },
-  { start: 139, duration: 219.5 },
-  { start: 401, duration: 97.5 },
-  { start: 538.5, duration: 29 },
-  { start: 722, duration: 108.5 },
-  { start: 1094, duration: 172.5 },
-  { start: 1268, duration: 101.5 },
-  { start: 1399, duration: 32.5 },
-  { start: 1478, duration: 148 },
-  { start: 1640, duration: 96 },
-  { start: 1884, duration: 73.5 },
+  { start: 0, duration: 68 },
+  { start: 139, duration: 220 },
+  { start: 401, duration: 98 },
+  { start: 538.5, duration: 29.5 },
+  { start: 722, duration: 109 },
+  { start: 1094, duration: 173 },
+  { start: 1268, duration: 102 },
+  { start: 1399, duration: 33 },
+  { start: 1478, duration: 148.5 },
+  { start: 1640, duration: 96.5 },
+  { start: 1884, duration: 74 },
 ];
 
 // ── Fade through black transition ───────────────────────────────────────────
