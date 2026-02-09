@@ -10,10 +10,16 @@ import {
 } from "remotion";
 import { Video } from "@remotion/media";
 import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
+import { loadFont as loadOutfit } from "@remotion/google-fonts/Outfit";
 
 const { fontFamily: interFontFamily } = loadInter("normal", {
   subsets: ["latin"],
   weights: ["300", "400", "600", "700", "800"],
+});
+
+const { fontFamily: outfitFontFamily } = loadOutfit("normal", {
+  subsets: ["latin"],
+  weights: ["200", "300", "600", "700"],
 });
 
 const CLAMP = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
@@ -1011,6 +1017,98 @@ export const AgentInAction: React.FC = () => {
           Implementation
         </span>
       </div>
+
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* BOTTOM TITLE — AI Driven IaC headline                             */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {(() => {
+        const titleEntranceSpring = spring({
+          frame: Math.max(0, frame - 60),
+          fps,
+          config: { damping: 20, stiffness: 60, mass: 1.0 },
+        });
+        const titleY = interpolate(titleEntranceSpring, [0, 1], [25, 0]);
+        const titleOp = interpolate(titleEntranceSpring, [0, 1], [0, 1]);
+
+        const lineSpring = spring({
+          frame: Math.max(0, frame - 80),
+          fps,
+          config: { damping: 18, stiffness: 70, mass: 0.8 },
+        });
+        const accentWidth = interpolate(lineSpring, [0, 1], [0, 360]);
+
+        const subSpring = spring({
+          frame: Math.max(0, frame - 95),
+          fps,
+          config: { damping: 20, stiffness: 60, mass: 0.8 },
+        });
+        const subOp = interpolate(subSpring, [0, 1], [0, 0.7]);
+        const subSpacing = interpolate(subSpring, [0, 1], [8, 3]);
+
+        // Fade with exit
+        const combinedOp = titleOp * exitOpacity;
+
+        return (
+          <div
+            style={{
+              position: "absolute",
+              bottom: 85,
+              right: 60,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: 0,
+              opacity: combinedOp,
+              transform: `translateY(${titleY}px)`,
+            }}
+          >
+            {/* Primary headline */}
+            <div
+              style={{
+                fontFamily: outfitFontFamily,
+                fontSize: 32,
+                fontWeight: 600,
+                color: "#ffffff",
+                letterSpacing: 1.2,
+                textAlign: "right",
+                lineHeight: 1.2,
+                textShadow: `0 0 40px ${PURPLE}30`,
+              }}
+            >
+              AI Driven Infrastructure as Code
+            </div>
+
+            {/* Accent line */}
+            <div
+              style={{
+                width: accentWidth,
+                height: 1,
+                background: `linear-gradient(90deg, transparent, ${PURPLE}80)`,
+                margin: "10px 0",
+              }}
+            />
+
+            {/* Secondary line */}
+            <div
+              style={{
+                fontFamily: outfitFontFamily,
+                fontSize: 15,
+                fontWeight: 200,
+                color: `${PURPLE}`,
+                letterSpacing: subSpacing,
+                textTransform: "uppercase" as const,
+                opacity: subOp > 0 ? 1 : 0,
+                textAlign: "right",
+                lineHeight: 1.6,
+              }}
+            >
+              Autonomous Agentic Workflow
+              <br />
+              with Specification Driven Development
+            </div>
+          </div>
+        );
+      })()}
     </AbsoluteFill>
   );
 };
