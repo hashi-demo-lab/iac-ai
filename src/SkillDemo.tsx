@@ -51,13 +51,13 @@ const planClips: Clip[] = [
       holdDuration: 3,
     },
   },
-  { start: 314, duration: 23 },
   { start: 442, duration: 79 },
-  { start: 638, duration: 53 },
+  { start: 314, duration: 23 },
+  { start: 638, duration: 52.5 },
   { start: 690, duration: 68 },
   { start: 1031.5, duration: 53 },
   { start: 758, duration: 58 },
-  { start: 958, duration: 74 },
+  { start: 954, duration: 78 },
   { start: 1132, duration: 56 },
 ];
 
@@ -68,7 +68,7 @@ const applyClips: Clip[] = [
   { start: 538.5, duration: 29.5 },
   { start: 722, duration: 109 },
   { start: 1094, duration: 173 },
-  { start: 1268, duration: 102 },
+  { start: 1268, duration: 109.3 },
   { start: 1399, duration: 33 },
   { start: 1478, duration: 148.5 },
   { start: 1640, duration: 96.5 },
@@ -261,6 +261,29 @@ const PauseOverlay: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
+// ── Clip number label (bottom-left, preview only) ───────────────────────────
+
+const ClipNumberLabel: React.FC<{ label: string }> = ({ label }) => (
+  <AbsoluteFill>
+    <div
+      style={{
+        position: "absolute",
+        bottom: 20,
+        left: 20,
+        fontFamily,
+        fontSize: 18,
+        fontWeight: 700,
+        color: "#fff",
+        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        padding: "4px 10px",
+        borderRadius: 4,
+      }}
+    >
+      {label}
+    </div>
+  </AbsoluteFill>
+);
+
 // ── Helper: render a series of clips ────────────────────────────────────────
 
 const renderClips = (
@@ -300,7 +323,6 @@ const renderClips = (
         >
           <Video
             src={src}
-
             trimBefore={preTrimBefore}
             trimAfter={preTrimAfter}
             style={{ width: "100%", height: "100%" }}
@@ -311,6 +333,7 @@ const renderClips = (
               })
             }
           />
+          <ClipNumberLabel label={`${keyPrefix} #${i + 1}`} />
         </TransitionSeries.Sequence>,
         // Freeze: frozen frame + ping + text overlay (hard cut in & out)
         <TransitionSeries.Sequence
@@ -336,7 +359,6 @@ const renderClips = (
         >
           <Video
             src={src}
-
             trimBefore={postTrimBefore}
             trimAfter={postTrimAfter}
             style={{ width: "100%", height: "100%" }}
@@ -347,6 +369,7 @@ const renderClips = (
               })
             }
           />
+          <ClipNumberLabel label={`${keyPrefix} #${i + 1}`} />
         </TransitionSeries.Sequence>,
       ];
     }
@@ -389,6 +412,7 @@ const renderClips = (
             showForSeconds={clip.note.showFor}
           />
         )}
+        <ClipNumberLabel label={`${keyPrefix} #${i + 1}`} />
       </TransitionSeries.Sequence>,
     ];
   });
